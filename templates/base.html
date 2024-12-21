@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>{% block title %}Polling App{% endblock %}</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/4.1.1/animate.min.css">
+    <style>
+        .gradient-bg { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); }
+        .hover-scale { transition: transform 0.2s; }
+        .hover-scale:hover { transform: scale(1.02); }
+    </style>
+</head>
+<body class="bg-gradient-to-br from-gray-50 to-indigo-50/30 min-h-screen">
+    <nav class="gradient-bg shadow-lg">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex justify-between h-16">
+                <div class="flex items-center space-x-8">
+                    <a href="{{ url_for('index') }}" class="text-2xl font-black text-white tracking-tight">PollApp</a>
+                    <div class="hidden md:flex space-x-4">
+                        <a href="{{ url_for('index') }}" class="text-white/90 hover:text-white px-3 py-2 rounded-md text-sm font-medium">All Polls</a>
+                        <a href="{{ url_for('create') }}" class="text-white/90 hover:text-white px-3 py-2 rounded-md text-sm font-medium">Create Poll</a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <main class="container mx-auto py-12 px-4 sm:px-6 lg:px-8 animate__animated animate__fadeIn animate__faster">
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                {% for category, message in messages %}
+                    <div class="animate__animated animate__fadeIn rounded-md p-4 mb-4 {% if category == 'error' %}bg-red-50 text-red-700{% else %}bg-green-50 text-green-700{% endif %}">
+                        {{ message }}
+                    </div>
+                {% endfor %}
+            {% endif %}
+        {% endwith %}
+        
+        {% block content %}{% endblock %}
+    </main>
+</body>
+</html>
