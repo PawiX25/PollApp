@@ -6,6 +6,10 @@
         .flash-message { padding: 10px; margin: 10px 0; }
         .flash-error { background-color: #ffebee; }
         .flash-success { background-color: #e8f5e9; }
+        .poll-controls { margin-top: 10px; }
+        .poll-controls form { display: inline; }
+        .delete-btn { background-color: #ffebee; }
+        .reset-btn { background-color: #e3f2fd; }
     </style>
 </head>
 <body>
@@ -27,12 +31,20 @@
         <form action="{{ url_for('vote', poll_id=poll.id) }}" method="post">
             {% for option in poll.options %}
             <div>
-                <input type="radio" name="option" value="{{ option.id }}" id="option{{ option.id }}">
+                <input type="radio" name="option" value="{{ option.id }}" id="option{{ option.id }}" required>
                 <label for="option{{ option.id }}">{{ option.text }} ({{ option.votes }} votes)</label>
             </div>
             {% endfor %}
             <button type="submit">Vote</button>
         </form>
+        <div class="poll-controls">
+            <form action="{{ url_for('reset_votes', poll_id=poll.id) }}" method="post" style="display: inline;">
+                <button type="submit" class="reset-btn">Reset Votes</button>
+            </form>
+            <form action="{{ url_for('delete_poll', poll_id=poll.id) }}" method="post" style="display: inline;">
+                <button type="submit" class="delete-btn" onclick="return confirm('Are you sure you want to delete this poll?')">Delete Poll</button>
+            </form>
+        </div>
     </div>
     {% endfor %}
 </body>

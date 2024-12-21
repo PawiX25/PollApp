@@ -6,6 +6,10 @@
         .flash-message { padding: 10px; margin: 10px 0; }
         .flash-error { background-color: #ffebee; }
         .flash-success { background-color: #e8f5e9; }
+        .form-group { margin-bottom: 15px; }
+        .form-group label { display: block; margin-bottom: 5px; }
+        .form-group input { width: 100%; padding: 5px; }
+        .validation-hint { font-size: 0.8em; color: #666; }
     </style>
 </head>
 <body>
@@ -20,16 +24,18 @@
     {% endwith %}
 
     <form method="post">
-        <div>
+        <div class="form-group">
             <label for="question">Question:</label>
             <input type="text" name="question" id="question" required minlength="5">
+            <span class="validation-hint">Must be at least 5 characters long</span>
         </div>
-        <div id="options">
+        <div class="form-group" id="options">
             <label>Options (at least 2 required):</label>
-            <input type="text" name="options" required>
-            <input type="text" name="options" required>
-            <input type="text" name="options">
-            <input type="text" name="options">
+            <input type="text" name="options" required placeholder="Option 1">
+            <input type="text" name="options" required placeholder="Option 2">
+            <input type="text" name="options" placeholder="Option 3 (optional)">
+            <input type="text" name="options" placeholder="Option 4 (optional)">
+            <span class="validation-hint">At least 2 options must be provided</span>
         </div>
         <button type="submit">Create Poll</button>
     </form>
