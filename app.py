@@ -18,7 +18,7 @@ class Poll(db.Model):
     question = db.Column(db.String(200), nullable=False)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     expires_at = db.Column(db.DateTime, nullable=True)
-    options = db.relationship('Option', backref='poll', lazy=True)
+    options = db.relationship('Option', backref='poll', lazy=True, cascade='all, delete-orphan')
 
     def reset_votes(self):
         for option in self.options:
@@ -101,11 +101,14 @@ def create():
 def delete_poll(poll_id):
     poll = Poll.query.get_or_404(poll_id)
     try:
-        Vote.query.filter(Vote.option_id.in_([opt.id for opt in poll.options])).delete()
+        # First delete all votes associated with this poll's options
+        Vote.query.filter(Vote.option_id.in_([opt.id for opt in poll.options])).delete(synchronize_session=False)
+        # Then delete the poll (will cascade delete options)
         db.session.delete(poll)
         db.session.commit()
         flash('Poll deleted successfully!', 'success')
     except Exception as e:
+        print(f"Error deleting poll: {str(e)}")  # For debugging
         db.session.rollback()
         flash('An error occurred while deleting the poll', 'error')
     return redirect(url_for('index'))
