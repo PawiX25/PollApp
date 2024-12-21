@@ -1,4 +1,4 @@
-from flask import Flask, render_template, request, redirect, url_for, flash
+from flask import Flask, render_template, request, redirect, url_for, flash, session
 from flask_sqlalchemy import SQLAlchemy
 from datetime import datetime
 from dotenv import load_dotenv
@@ -17,11 +17,22 @@ class Poll(db.Model):
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     options = db.relationship('Option', backref='poll', lazy=True)
 
+    def reset_votes(self):
+        for option in self.options:
+            option.votes = 0
+        Vote.query.filter(Vote.option_id.in_([opt.id for opt in self.options])).delete()
+
 class Option(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     text = db.Column(db.String(200), nullable=False)
     votes = db.Column(db.Integer, default=0)
     poll_id = db.Column(db.Integer, db.ForeignKey('poll.id'), nullable=False)
+
+class Vote(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    option_id = db.Column(db.Integer, db.ForeignKey('option.id'), nullable=False)
+    timestamp = db.Column(db.DateTime, default=datetime.utcnow)
+    session_id = db.Column(db.String(100), nullable=False)
 
 @app.route('/')
 def index():
@@ -60,17 +71,58 @@ def create():
     
     return render_template('create.html')
 
+@app.route('/delete/<int:poll_id>', methods=['POST'])
+def delete_poll(poll_id):
+    poll = Poll.query.get_or_404(poll_id)
+    try:
+        Vote.query.filter(Vote.option_id.in_([opt.id for opt in poll.options])).delete()
+        db.session.delete(poll)
+        db.session.commit()
+        flash('Poll deleted successfully!', 'success')
+    except Exception as e:
+        db.session.rollback()
+        flash('An error occurred while deleting the poll', 'error')
+    return redirect(url_for('index'))
+
+@app.route('/reset/<int:poll_id>', methods=['POST'])
+def reset_votes(poll_id):
+    poll = Poll.query.get_or_404(poll_id)
+    try:
+        poll.reset_votes()
+        db.session.commit()
+        flash('Votes reset successfully!', 'success')
+    except Exception as e:
+        db.session.rollback()
+        flash('An error occurred while resetting votes', 'error')
+    return redirect(url_for('index'))
+
 @app.route('/vote/<int:poll_id>', methods=['POST'])
 def vote(poll_id):
+    if 'session_id' not in session:
+        session['session_id'] = os.urandom(16).hex()
+
     option_id = request.form.get('option')
     
     if not option_id:
         flash('Please select an option to vote', 'error')
         return redirect(url_for('index'))
     
+    existing_vote = Vote.query.filter_by(
+        option_id=option_id,
+        session_id=session['session_id']
+    ).first()
+    
+    if existing_vote:
+        flash('You have already voted in this poll', 'error')
+        return redirect(url_for('index'))
+    
     try:
         option = Option.query.get_or_404(option_id)
         option.votes += 1
+        
+        vote = Vote(option_id=option_id, session_id=session['session_id'])
+        db.session.add(vote)
+        
         db.session.commit()
         flash('Vote recorded successfully!', 'success')
     except Exception as e:
