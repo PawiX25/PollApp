@@ -32,7 +32,11 @@ class Poll(db.Model):
     def is_expired(self):
         if self.expires_at is None:
             return False
-        return datetime.now(timezone.utc) > self.expires_at
+        if self.expires_at.tzinfo is None:
+            aware_expires_at = self.expires_at.replace(tzinfo=timezone.utc)
+        else:
+            aware_expires_at = self.expires_at
+        return datetime.now(timezone.utc) > aware_expires_at
 
 class Option(db.Model):
     id = db.Column(db.Integer, primary_key=True)
@@ -67,7 +71,11 @@ def create():
             return render_template('create.html')
             
         try:
-            expires_at = datetime.fromisoformat(expiration) if expiration else None
+            if expiration:
+                expires_at = datetime.fromisoformat(expiration).astimezone(timezone.utc)
+            else:
+                expires_at = None
+
             poll = Poll(
                 question=question, 
                 slug=Poll().generate_slug(),
