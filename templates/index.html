@@ -2,9 +2,23 @@
 <html>
 <head>
     <title>Polling App</title>
+    <style>
+        .flash-message { padding: 10px; margin: 10px 0; }
+        .flash-error { background-color: #ffebee; }
+        .flash-success { background-color: #e8f5e9; }
+    </style>
 </head>
 <body>
     <h1>Polls</h1>
+    
+    {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+            {% for category, message in messages %}
+                <div class="flash-message flash-{{ category }}">{{ message }}</div>
+            {% endfor %}
+        {% endif %}
+    {% endwith %}
+
     <a href="{{ url_for('create') }}">Create New Poll</a>
     
     {% for poll in polls %}

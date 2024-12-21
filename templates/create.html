@@ -2,16 +2,30 @@
 <html>
 <head>
     <title>Create Poll</title>
+    <style>
+        .flash-message { padding: 10px; margin: 10px 0; }
+        .flash-error { background-color: #ffebee; }
+        .flash-success { background-color: #e8f5e9; }
+    </style>
 </head>
 <body>
     <h1>Create New Poll</h1>
+    
+    {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+            {% for category, message in messages %}
+                <div class="flash-message flash-{{ category }}">{{ message }}</div>
+            {% endfor %}
+        {% endif %}
+    {% endwith %}
+
     <form method="post">
         <div>
             <label for="question">Question:</label>
-            <input type="text" name="question" id="question" required>
+            <input type="text" name="question" id="question" required minlength="5">
         </div>
         <div id="options">
-            <label>Options:</label>
+            <label>Options (at least 2 required):</label>
             <input type="text" name="options" required>
             <input type="text" name="options" required>
             <input type="text" name="options">

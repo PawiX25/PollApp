@@ -1,9 +1,14 @@
-from flask import Flask, render_template, request, redirect, url_for
+from flask import Flask, render_template, request, redirect, url_for, flash
 from flask_sqlalchemy import SQLAlchemy
 from datetime import datetime
+from dotenv import load_dotenv
+import os
+
+load_dotenv()
 
 app = Flask(__name__)
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///polls.db'
+app.config['SECRET_KEY'] = os.getenv('FLASK_SECRET_KEY')
 db = SQLAlchemy(app)
 
 class Poll(db.Model):
@@ -26,28 +31,52 @@ def index():
 @app.route('/create', methods=['GET', 'POST'])
 def create():
     if request.method == 'POST':
-        question = request.form['question']
-        options = request.form.getlist('options')
+        question = request.form['question'].strip()
+        options = [opt.strip() for opt in request.form.getlist('options') if opt.strip()]
         
-        poll = Poll(question=question)
-        db.session.add(poll)
+        if len(question) < 5:
+            flash('Question must be at least 5 characters long', 'error')
+            return render_template('create.html')
         
-        for option_text in options:
-            if option_text:
+        if len(options) < 2:
+            flash('You must provide at least 2 options', 'error')
+            return render_template('create.html')
+            
+        try:
+            poll = Poll(question=question)
+            db.session.add(poll)
+            
+            for option_text in options:
                 option = Option(text=option_text, poll=poll)
                 db.session.add(option)
-        
-        db.session.commit()
-        return redirect(url_for('index'))
+            
+            db.session.commit()
+            flash('Poll created successfully!', 'success')
+            return redirect(url_for('index'))
+        except Exception as e:
+            db.session.rollback()
+            flash('An error occurred while creating the poll', 'error')
+            return render_template('create.html')
     
     return render_template('create.html')
 
 @app.route('/vote/<int:poll_id>', methods=['POST'])
 def vote(poll_id):
-    option_id = request.form['option']
-    option = Option.query.get_or_404(option_id)
-    option.votes += 1
-    db.session.commit()
+    option_id = request.form.get('option')
+    
+    if not option_id:
+        flash('Please select an option to vote', 'error')
+        return redirect(url_for('index'))
+    
+    try:
+        option = Option.query.get_or_404(option_id)
+        option.votes += 1
+        db.session.commit()
+        flash('Vote recorded successfully!', 'success')
+    except Exception as e:
+        db.session.rollback()
+        flash('An error occurred while recording your vote', 'error')
+    
     return redirect(url_for('index'))
 
 if __name__ == '__main__':
