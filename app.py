@@ -51,6 +51,10 @@ class Vote(db.Model):
     session_id = db.Column(db.String(100), nullable=False)
 
 @app.route('/')
+def landing():
+    return render_template('landing.html')
+
+@app.route('/polls')
 def index():
     polls = Poll.query.order_by(Poll.created_at.desc()).all()
     return render_template('index.html', polls=polls)
