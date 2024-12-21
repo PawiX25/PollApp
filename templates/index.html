@@ -10,6 +10,8 @@
         .poll-controls form { display: inline; }
         .delete-btn { background-color: #ffebee; }
         .reset-btn { background-color: #e3f2fd; }
+        .expiration-info { padding: 5px; margin: 5px 0; color: #666; }
+        .expiration-info.expired { color: #d32f2f; }
     </style>
 </head>
 <body>
@@ -28,15 +30,26 @@
     {% for poll in polls %}
     <div class="poll">
         <h2>{{ poll.question }}</h2>
-        <form action="{{ url_for('vote', poll_id=poll.id) }}" method="post">
-            {% for option in poll.options %}
-            <div>
-                <input type="radio" name="option" value="{{ option.id }}" id="option{{ option.id }}" required>
-                <label for="option{{ option.id }}">{{ option.text }} ({{ option.votes }} votes)</label>
+        {% if poll.expires_at %}
+            <div class="expiration-info {% if poll.is_expired %}expired{% endif %}">
+                {% if poll.is_expired %}
+                    <p>This poll has expired</p>
+                {% else %}
+                    <p>Expires: {{ poll.expires_at.strftime('%Y-%m-%d %H:%M:%S UTC') }}</p>
+                {% endif %}
             </div>
-            {% endfor %}
-            <button type="submit">Vote</button>
-        </form>
+        {% endif %}
+        {% if not poll.is_expired %}
+            <form action="{{ url_for('vote', poll_id=poll.id) }}" method="post">
+                {% for option in poll.options %}
+                <div>
+                    <input type="radio" name="option" value="{{ option.id }}" id="option{{ option.id }}" required>
+                    <label for="option{{ option.id }}">{{ option.text }} ({{ option.votes }} votes)</label>
+                </div>
+                {% endfor %}
+                <button type="submit">Vote</button>
+            </form>
+        {% endif %}
         <div class="poll-controls">
             <form action="{{ url_for('reset_votes', poll_id=poll.id) }}" method="post" style="display: inline;">
                 <button type="submit" class="reset-btn">Reset Votes</button>

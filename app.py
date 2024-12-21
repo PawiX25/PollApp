@@ -1,6 +1,6 @@
 from flask import Flask, render_template, request, redirect, url_for, flash, session
 from flask_sqlalchemy import SQLAlchemy
-from datetime import datetime
+from datetime import datetime, timezone
 from dotenv import load_dotenv
 import os
 import uuid
@@ -17,6 +17,7 @@ class Poll(db.Model):
     slug = db.Column(db.String(100), unique=True, nullable=False)
     question = db.Column(db.String(200), nullable=False)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    expires_at = db.Column(db.DateTime, nullable=True)
     options = db.relationship('Option', backref='poll', lazy=True)
 
     def reset_votes(self):
@@ -26,6 +27,12 @@ class Poll(db.Model):
 
     def generate_slug(self):
         return str(uuid.uuid4())[:8]
+
+    @property
+    def is_expired(self):
+        if self.expires_at is None:
+            return False
+        return datetime.now(timezone.utc) > self.expires_at
 
 class Option(db.Model):
     id = db.Column(db.Integer, primary_key=True)
@@ -49,6 +56,7 @@ def create():
     if request.method == 'POST':
         question = request.form['question'].strip()
         options = [opt.strip() for opt in request.form.getlist('options') if opt.strip()]
+        expiration = request.form.get('expires_at')
         
         if len(question) < 5:
             flash('Question must be at least 5 characters long', 'error')
@@ -59,7 +67,12 @@ def create():
             return render_template('create.html')
             
         try:
-            poll = Poll(question=question, slug=Poll().generate_slug())
+            expires_at = datetime.fromisoformat(expiration) if expiration else None
+            poll = Poll(
+                question=question, 
+                slug=Poll().generate_slug(),
+                expires_at=expires_at
+            )
             db.session.add(poll)
             
             for option_text in options:
@@ -103,6 +116,11 @@ def reset_votes(poll_id):
 
 @app.route('/vote/<int:poll_id>', methods=['POST'])
 def vote(poll_id):
+    poll = Poll.query.get_or_404(poll_id)
+    if poll.is_expired:
+        flash('This poll has expired', 'error')
+        return redirect(url_for('index'))
+
     if 'session_id' not in session:
         session['session_id'] = os.urandom(16).hex()
 

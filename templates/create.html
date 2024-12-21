@@ -37,6 +37,11 @@
             <input type="text" name="options" placeholder="Option 4 (optional)">
             <span class="validation-hint">At least 2 options must be provided</span>
         </div>
+        <div class="form-group">
+            <label for="expires_at">Expiration Date (optional):</label>
+            <input type="datetime-local" name="expires_at" id="expires_at">
+            <span class="validation-hint">Leave empty for no expiration</span>
+        </div>
         <button type="submit">Create Poll</button>
     </form>
     <a href="{{ url_for('index') }}">Back to Polls</a>
