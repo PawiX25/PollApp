@@ -2,33 +2,47 @@
 <html>
 <head>
     <title>{{ poll.question }} - Poll</title>
-    <style>
-        .flash-message { padding: 10px; margin: 10px 0; }
-        .flash-error { background-color: #ffebee; }
-        .flash-success { background-color: #e8f5e9; }
-    </style>
+    <script src="https://cdn.tailwindcss.com"></script>
 </head>
-<body>
-    <h1>{{ poll.question }}</h1>
-    
-    {% with messages = get_flashed_messages(with_categories=true) %}
-        {% if messages %}
-            {% for category, message in messages %}
-                <div class="flash-message flash-{{ category }}">{{ message }}</div>
-            {% endfor %}
-        {% endif %}
-    {% endwith %}
+<body class="bg-gray-50 min-h-screen">
+    <div class="max-w-3xl mx-auto py-8 px-4 sm:px-6 lg:px-8">
+        <div class="bg-white shadow-lg rounded-lg p-6">
+            <h1 class="text-2xl font-bold text-gray-900 mb-6">{{ poll.question }}</h1>
+            
+            {% with messages = get_flashed_messages(with_categories=true) %}
+                {% if messages %}
+                    {% for category, message in messages %}
+                        <div class="rounded-md p-4 mb-4 {% if category == 'error' %}bg-red-50 text-red-700{% else %}bg-green-50 text-green-700{% endif %}">
+                            {{ message }}
+                        </div>
+                    {% endfor %}
+                {% endif %}
+            {% endwith %}
 
-    <form action="{{ url_for('vote', poll_id=poll.id) }}" method="post">
-        {% for option in poll.options %}
-        <div>
-            <input type="radio" name="option" value="{{ option.id }}" id="option{{ option.id }}" required>
-            <label for="option{{ option.id }}">{{ option.text }} ({{ option.votes }} votes)</label>
+            <form action="{{ url_for('vote', poll_id=poll.id) }}" method="post" class="space-y-4">
+                {% for option in poll.options %}
+                <div class="flex items-center space-x-3 p-3 hover:bg-gray-50 rounded-md transition">
+                    <input type="radio" name="option" value="{{ option.id }}" id="option{{ option.id }}"
+                           class="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300" required>
+                    <label for="option{{ option.id }}" class="text-gray-700 flex-grow">
+                        {{ option.text }}
+                        <span class="ml-2 text-gray-500">({{ option.votes }} votes)</span>
+                    </label>
+                </div>
+                {% endfor %}
+                <button type="submit" 
+                        class="w-full bg-indigo-600 text-white rounded-md px-4 py-2 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 transition">
+                    Vote
+                </button>
+            </form>
+            
+            <div class="mt-6">
+                <a href="{{ url_for('index') }}" 
+                   class="text-indigo-600 hover:text-indigo-800 font-medium">
+                    ← Back to All Polls
+                </a>
+            </div>
         </div>
-        {% endfor %}
-        <button type="submit">Vote</button>
-    </form>
-    
-    <p><a href="{{ url_for('index') }}">Back to All Polls</a></p>
+    </div>
 </body>
 </html>
