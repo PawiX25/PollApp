@@ -3,6 +3,7 @@ from flask_sqlalchemy import SQLAlchemy
 from datetime import datetime
 from dotenv import load_dotenv
 import os
+import uuid
 
 load_dotenv()
 
@@ -13,6 +14,7 @@ db = SQLAlchemy(app)
 
 class Poll(db.Model):
     id = db.Column(db.Integer, primary_key=True)
+    slug = db.Column(db.String(100), unique=True, nullable=False)
     question = db.Column(db.String(200), nullable=False)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     options = db.relationship('Option', backref='poll', lazy=True)
@@ -21,6 +23,9 @@ class Poll(db.Model):
         for option in self.options:
             option.votes = 0
         Vote.query.filter(Vote.option_id.in_([opt.id for opt in self.options])).delete()
+
+    def generate_slug(self):
+        return str(uuid.uuid4())[:8]
 
 class Option(db.Model):
     id = db.Column(db.Integer, primary_key=True)
@@ -54,7 +59,7 @@ def create():
             return render_template('create.html')
             
         try:
-            poll = Poll(question=question)
+            poll = Poll(question=question, slug=Poll().generate_slug())
             db.session.add(poll)
             
             for option_text in options:
@@ -130,6 +135,11 @@ def vote(poll_id):
         flash('An error occurred while recording your vote', 'error')
     
     return redirect(url_for('index'))
+
+@app.route('/poll/<string:slug>')
+def view_poll(slug):
+    poll = Poll.query.filter_by(slug=slug).first_or_404()
+    return render_template('poll.html', poll=poll)
 
 if __name__ == '__main__':
     with app.app_context():

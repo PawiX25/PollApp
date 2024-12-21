@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>{{ poll.question }} - Poll</title>
+    <style>
+        .flash-message { padding: 10px; margin: 10px 0; }
+        .flash-error { background-color: #ffebee; }
+        .flash-success { background-color: #e8f5e9; }
+    </style>
+</head>
+<body>
+    <h1>{{ poll.question }}</h1>
+    
+    {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+            {% for category, message in messages %}
+                <div class="flash-message flash-{{ category }}">{{ message }}</div>
+            {% endfor %}
+        {% endif %}
+    {% endwith %}
+
+    <form action="{{ url_for('vote', poll_id=poll.id) }}" method="post">
+        {% for option in poll.options %}
+        <div>
+            <input type="radio" name="option" value="{{ option.id }}" id="option{{ option.id }}" required>
+            <label for="option{{ option.id }}">{{ option.text }} ({{ option.votes }} votes)</label>
+        </div>
+        {% endfor %}
+        <button type="submit">Vote</button>
+    </form>
+    
+    <p><a href="{{ url_for('index') }}">Back to All Polls</a></p>
+</body>
+</html>

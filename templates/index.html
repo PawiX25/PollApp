@@ -44,6 +44,10 @@
             <form action="{{ url_for('delete_poll', poll_id=poll.id) }}" method="post" style="display: inline;">
                 <button type="submit" class="delete-btn" onclick="return confirm('Are you sure you want to delete this poll?')">Delete Poll</button>
             </form>
+            <div class="share-link">
+                Share Link: <input type="text" readonly value="{{ url_for('view_poll', slug=poll.slug, _external=True) }}" 
+                onclick="this.select();" style="width: 300px;">
+            </div>
         </div>
     </div>
     {% endfor %}
