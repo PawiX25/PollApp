@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Polling App</title>
+</head>
+<body>
+    <h1>Polls</h1>
+    <a href="{{ url_for('create') }}">Create New Poll</a>
+    
+    {% for poll in polls %}
+    <div class="poll">
+        <h2>{{ poll.question }}</h2>
+        <form action="{{ url_for('vote', poll_id=poll.id) }}" method="post">
+            {% for option in poll.options %}
+            <div>
+                <input type="radio" name="option" value="{{ option.id }}" id="option{{ option.id }}">
+                <label for="option{{ option.id }}">{{ option.text }} ({{ option.votes }} votes)</label>
+            </div>
+            {% endfor %}
+            <button type="submit">Vote</button>
+        </form>
+    </div>
+    {% endfor %}
+</body>
+</html>

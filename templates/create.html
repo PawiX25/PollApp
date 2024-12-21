@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Create Poll</title>
+</head>
+<body>
+    <h1>Create New Poll</h1>
+    <form method="post">
+        <div>
+            <label for="question">Question:</label>
+            <input type="text" name="question" id="question" required>
+        </div>
+        <div id="options">
+            <label>Options:</label>
+            <input type="text" name="options" required>
+            <input type="text" name="options" required>
+            <input type="text" name="options">
+            <input type="text" name="options">
+        </div>
+        <button type="submit">Create Poll</button>
+    </form>
+    <a href="{{ url_for('index') }}">Back to Polls</a>
+</body>
+</html>
