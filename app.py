@@ -255,6 +255,13 @@ def view_poll(slug):
     poll = Poll.query.filter_by(slug=slug).first_or_404()
     return render_template('poll.html', poll=poll)
 
+@app.route('/poll/<int:poll_id>/details')
+@login_required
+def poll_details(poll_id):
+    poll = Poll.query.get_or_404(poll_id)
+    total_votes = sum(option.votes for option in poll.options)
+    return render_template('poll_details.html', poll=poll, total_votes=total_votes)
+
 @app.route('/profile')
 @login_required
 def profile():

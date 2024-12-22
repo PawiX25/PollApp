@@ -55,9 +55,9 @@
                     Created: {{ poll.created_at.strftime('%Y-%m-%d %H:%M') }}
                 </div>
                 <div class="flex space-x-2">
-                    <a href="{{ url_for('view_poll', slug=poll.slug) }}" 
+                    <a href="{{ url_for('poll_details', poll_id=poll.id) }}" 
                        class="flex-1 text-center bg-indigo-50 text-indigo-600 px-3 py-1 rounded hover:bg-indigo-100">
-                        View
+                        View Details
                     </a>
                     <form action="{{ url_for('delete_poll', poll_id=poll.id) }}" method="post" class="flex-1">
                         <button type="submit" 
