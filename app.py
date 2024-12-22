@@ -46,6 +46,7 @@ class Option(db.Model):
 
 class Vote(db.Model):
     id = db.Column(db.Integer, primary_key=True)
+    poll_id = db.Column(db.Integer, db.ForeignKey('poll.id'), nullable=False)
     option_id = db.Column(db.Integer, db.ForeignKey('option.id'), nullable=False)
     timestamp = db.Column(db.DateTime, default=datetime.utcnow)
     session_id = db.Column(db.String(100), nullable=False)
@@ -146,7 +147,7 @@ def vote(poll_id):
         return redirect(url_for('index'))
     
     existing_vote = Vote.query.filter_by(
-        option_id=option_id,
+        poll_id=poll_id,
         session_id=session['session_id']
     ).first()
     
@@ -158,7 +159,7 @@ def vote(poll_id):
         option = Option.query.get_or_404(option_id)
         option.votes += 1
         
-        vote = Vote(option_id=option_id, session_id=session['session_id'])
+        vote = Vote(poll_id=poll_id, option_id=option_id, session_id=session['session_id'])
         db.session.add(vote)
         
         db.session.commit()
