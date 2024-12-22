@@ -8,6 +8,10 @@
         .gradient-bg { background: linear-gradient(to right, #4f46e5, #7c3aed); }
         .hover-scale { transition: transform 0.15s ease-in-out; }
         .hover-scale:hover { transform: scale(1.05); }
+        
+        .mobile-menu { transition: transform 0.3s ease-in-out; }
+        .mobile-menu.hidden { transform: translateX(-100%); }
+        .mobile-menu.show { transform: translateX(0); }
     </style>
 </head>
 <body class="bg-gradient-to-br from-gray-50 to-indigo-50/30 min-h-screen">
@@ -23,7 +27,7 @@
                         {% endif %}
                     </div>
                 </div>
-                <div class="flex items-center space-x-4">
+                <div class="hidden md:flex items-center space-x-4">
                     {% if current_user.is_authenticated %}
                         <a href="{{ url_for('profile') }}" class="text-white/90 hover:text-white px-3 py-2 rounded-md text-sm font-medium">Profile</a>
                         <span class="text-white/90">{{ current_user.username }}</span>
@@ -33,6 +37,28 @@
                         <a href="{{ url_for('register') }}" class="text-white/90 hover:text-white px-3 py-2 rounded-md text-sm font-medium">Register</a>
                     {% endif %}
                 </div>
+                <div class="md:hidden flex items-center">
+                    <button id="mobile-menu-button" class="text-white p-2">
+                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"/>
+                        </svg>
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <div id="mobile-menu" class="mobile-menu hidden fixed top-16 left-0 right-0 bottom-0 bg-indigo-600 z-50 md:hidden">
+            <div class="px-4 pt-2 pb-3 space-y-1">
+                <a href="{{ url_for('index') }}" class="block text-white px-3 py-2 rounded-md text-base font-medium hover:bg-indigo-700">All Polls</a>
+                {% if current_user.is_authenticated %}
+                    <a href="{{ url_for('create') }}" class="block text-white px-3 py-2 rounded-md text-base font-medium hover:bg-indigo-700">Create Poll</a>
+                    <a href="{{ url_for('profile') }}" class="block text-white px-3 py-2 rounded-md text-base font-medium hover:bg-indigo-700">Profile</a>
+                    <a href="{{ url_for('logout') }}" class="block text-white px-3 py-2 rounded-md text-base font-medium hover:bg-indigo-700">Logout</a>
+                    <div class="px-3 py-2 text-white/75">{{ current_user.username }}</div>
+                {% else %}
+                    <a href="{{ url_for('login') }}" class="block text-white px-3 py-2 rounded-md text-base font-medium hover:bg-indigo-700">Login</a>
+                    <a href="{{ url_for('register') }}" class="block text-white px-3 py-2 rounded-md text-base font-medium hover:bg-indigo-700">Register</a>
+                {% endif %}
             </div>
         </div>
     </nav>
@@ -50,5 +76,22 @@
         
         {% block content %}{% endblock %}
     </main>
+
+    <script>
+        const mobileMenuButton = document.getElementById('mobile-menu-button');
+        const mobileMenu = document.getElementById('mobile-menu');
+        
+        mobileMenuButton.addEventListener('click', () => {
+            mobileMenu.classList.toggle('hidden');
+            mobileMenu.classList.toggle('show');
+        });
+
+        document.addEventListener('click', (e) => {
+            if (!mobileMenu.contains(e.target) && !mobileMenuButton.contains(e.target)) {
+                mobileMenu.classList.add('hidden');
+                mobileMenu.classList.remove('show');
+            }
+        });
+    </script>
 </body>
 </html>
