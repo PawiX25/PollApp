@@ -175,8 +175,12 @@ def create():
     return render_template('create.html')
 
 @app.route('/delete/<int:poll_id>', methods=['POST'])
+@login_required
 def delete_poll(poll_id):
     poll = Poll.query.get_or_404(poll_id)
+    if poll.user_id != current_user.id:
+        flash('You are not authorized to delete this poll', 'error')
+        return redirect(url_for('index'))
     try:
         # First delete all votes associated with this poll's options
         Vote.query.filter(Vote.option_id.in_([opt.id for opt in poll.options])).delete(synchronize_session=False)
@@ -191,8 +195,12 @@ def delete_poll(poll_id):
     return redirect(url_for('index'))
 
 @app.route('/reset/<int:poll_id>', methods=['POST'])
+@login_required
 def reset_votes(poll_id):
     poll = Poll.query.get_or_404(poll_id)
+    if poll.user_id != current_user.id:
+        flash('You are not authorized to reset votes for this poll', 'error')
+        return redirect(url_for('index'))
     try:
         poll.reset_votes()
         db.session.commit()
