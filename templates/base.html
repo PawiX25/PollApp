@@ -18,8 +18,19 @@
                     <a href="{{ url_for('landing') }}" class="text-2xl font-black text-white tracking-tight">PollApp</a>
                     <div class="hidden md:flex space-x-4">
                         <a href="{{ url_for('index') }}" class="text-white/90 hover:text-white px-3 py-2 rounded-md text-sm font-medium">All Polls</a>
-                        <a href="{{ url_for('create') }}" class="text-white/90 hover:text-white px-3 py-2 rounded-md text-sm font-medium">Create Poll</a>
+                        {% if current_user.is_authenticated %}
+                            <a href="{{ url_for('create') }}" class="text-white/90 hover:text-white px-3 py-2 rounded-md text-sm font-medium">Create Poll</a>
+                        {% endif %}
                     </div>
+                </div>
+                <div class="flex items-center space-x-4">
+                    {% if current_user.is_authenticated %}
+                        <span class="text-white/90">{{ current_user.username }}</span>
+                        <a href="{{ url_for('logout') }}" class="text-white/90 hover:text-white px-3 py-2 rounded-md text-sm font-medium">Logout</a>
+                    {% else %}
+                        <a href="{{ url_for('login') }}" class="text-white/90 hover:text-white px-3 py-2 rounded-md text-sm font-medium">Login</a>
+                        <a href="{{ url_for('register') }}" class="text-white/90 hover:text-white px-3 py-2 rounded-md text-sm font-medium">Register</a>
+                    {% endif %}
                 </div>
             </div>
         </div>

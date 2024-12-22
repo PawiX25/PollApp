@@ -1,5 +1,7 @@
 from flask import Flask, render_template, request, redirect, url_for, flash, session
 from flask_sqlalchemy import SQLAlchemy
+from flask_login import LoginManager, UserMixin, login_user, logout_user, login_required, current_user
+from werkzeug.security import generate_password_hash, check_password_hash
 from datetime import datetime, timezone
 from dotenv import load_dotenv
 import os
@@ -12,6 +14,26 @@ app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///polls.db'
 app.config['SECRET_KEY'] = os.getenv('FLASK_SECRET_KEY')
 db = SQLAlchemy(app)
 
+login_manager = LoginManager()
+login_manager.init_app(app)
+login_manager.login_view = 'login'
+
+class User(UserMixin, db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    username = db.Column(db.String(80), unique=True, nullable=False)
+    password_hash = db.Column(db.String(200), nullable=False)
+    polls = db.relationship('Poll', backref='author', lazy=True)
+
+    def set_password(self, password):
+        self.password_hash = generate_password_hash(password)
+
+    def check_password(self, password):
+        return check_password_hash(self.password_hash, password)
+
+@login_manager.user_loader
+def load_user(id):
+    return User.query.get(int(id))
+
 class Poll(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     slug = db.Column(db.String(100), unique=True, nullable=False)
@@ -19,6 +41,7 @@ class Poll(db.Model):
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     expires_at = db.Column(db.DateTime, nullable=True)
     options = db.relationship('Option', backref='poll', lazy=True, cascade='all, delete-orphan')
+    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
 
     def reset_votes(self):
         for option in self.options:
@@ -60,7 +83,49 @@ def index():
     polls = Poll.query.order_by(Poll.created_at.desc()).all()
     return render_template('index.html', polls=polls)
 
+@app.route('/register', methods=['GET', 'POST'])
+def register():
+    if request.method == 'POST':
+        username = request.form['username']
+        password = request.form['password']
+        
+        if User.query.filter_by(username=username).first():
+            flash('Username already exists', 'error')
+            return render_template('register.html')
+        
+        user = User(username=username)
+        user.set_password(password)
+        db.session.add(user)
+        db.session.commit()
+        
+        flash('Registration successful!', 'success')
+        return redirect(url_for('login'))
+    
+    return render_template('register.html')
+
+@app.route('/login', methods=['GET', 'POST'])
+def login():
+    if request.method == 'POST':
+        username = request.form['username']
+        password = request.form['password']
+        user = User.query.filter_by(username=username).first()
+        
+        if user and user.check_password(password):
+            login_user(user)
+            return redirect(url_for('index'))
+        
+        flash('Invalid username or password', 'error')
+    
+    return render_template('login.html')
+
+@app.route('/logout')
+@login_required
+def logout():
+    logout_user()
+    return redirect(url_for('index'))
+
 @app.route('/create', methods=['GET', 'POST'])
+@login_required
 def create():
     if request.method == 'POST':
         question = request.form['question'].strip()
@@ -84,7 +149,8 @@ def create():
             poll = Poll(
                 question=question, 
                 slug=Poll().generate_slug(),
-                expires_at=expires_at
+                expires_at=expires_at,
+                user_id=current_user.id
             )
             db.session.add(poll)
             
