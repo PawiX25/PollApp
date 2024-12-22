@@ -18,10 +18,16 @@ login_manager = LoginManager()
 login_manager.init_app(app)
 login_manager.login_view = 'login'
 
+@app.template_filter('timestamp')
+def timestamp_filter(user_id):
+    user = User.query.get(user_id)
+    return user.created_at.strftime('%B %Y') if hasattr(user, 'created_at') else 'Unknown'
+
 class User(UserMixin, db.Model):
     id = db.Column(db.Integer, primary_key=True)
     username = db.Column(db.String(80), unique=True, nullable=False)
     password_hash = db.Column(db.String(200), nullable=False)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
     polls = db.relationship('Poll', backref='author', lazy=True)
 
     def set_password(self, password):
@@ -240,6 +246,22 @@ def vote(poll_id):
 def view_poll(slug):
     poll = Poll.query.filter_by(slug=slug).first_or_404()
     return render_template('poll.html', poll=poll)
+
+@app.route('/profile')
+@login_required
+def profile():
+    user_polls = Poll.query.filter_by(user_id=current_user.id).order_by(Poll.created_at.desc()).all()
+    active_polls = [poll for poll in user_polls if not poll.is_expired]
+    
+    total_votes = 0
+    for poll in user_polls:
+        for option in poll.options:
+            total_votes += option.votes
+            
+    return render_template('profile.html', 
+                         user_polls=user_polls,
+                         active_polls=active_polls,
+                         total_votes=total_votes)
 
 if __name__ == '__main__':
     with app.app_context():

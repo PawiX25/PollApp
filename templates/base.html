@@ -25,6 +25,7 @@
                 </div>
                 <div class="flex items-center space-x-4">
                     {% if current_user.is_authenticated %}
+                        <a href="{{ url_for('profile') }}" class="text-white/90 hover:text-white px-3 py-2 rounded-md text-sm font-medium">Profile</a>
                         <span class="text-white/90">{{ current_user.username }}</span>
                         <a href="{{ url_for('logout') }}" class="text-white/90 hover:text-white px-3 py-2 rounded-md text-sm font-medium">Logout</a>
                     {% else %}
