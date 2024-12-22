@@ -85,9 +85,20 @@
 
     <div class="bg-white shadow-xl rounded-2xl p-8">
         <h2 class="text-xl font-bold text-gray-900 mb-4">Share Poll</h2>
+        {% if poll.private %}
+            <div class="mb-4 p-4 bg-yellow-50 rounded-lg">
+                <div class="flex items-center">
+                    <svg class="w-5 h-5 text-yellow-400 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
+                              d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                    </svg>
+                    <p class="text-sm text-yellow-700">This is a private poll. Only people with the special link can access it.</p>
+                </div>
+            </div>
+        {% endif %}
         <div class="flex space-x-4">
             <input type="text" 
-                   value="{{ url_for('view_poll', slug=poll.slug, _external=True) }}"
+                   value="{{ poll.get_share_url() }}"
                    class="flex-1 text-sm text-gray-500 bg-gray-50 rounded-lg px-4 py-2 focus:outline-none border"
                    id="share-url"
                    readonly>

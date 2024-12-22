@@ -48,6 +48,8 @@ class Poll(db.Model):
     expires_at = db.Column(db.DateTime, nullable=True)
     options = db.relationship('Option', backref='poll', lazy=True, cascade='all, delete-orphan')
     user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    private = db.Column(db.Boolean, default=False)
+    access_token = db.Column(db.String(16), unique=True)
 
     def reset_votes(self):
         for option in self.options:
@@ -56,6 +58,14 @@ class Poll(db.Model):
 
     def generate_slug(self):
         return str(uuid.uuid4())[:8]
+
+    def generate_access_token(self):
+        return os.urandom(8).hex()
+
+    def get_share_url(self, _external=True):
+        if self.private:
+            return url_for('view_poll', slug=self.slug, token=self.access_token, _external=_external)
+        return url_for('view_poll', slug=self.slug, _external=_external)
 
     @property
     def is_expired(self):
@@ -86,7 +96,12 @@ def landing():
 
 @app.route('/polls')
 def index():
-    polls = Poll.query.order_by(Poll.created_at.desc()).all()
+    if current_user.is_authenticated:
+        polls = Poll.query.filter(
+            (Poll.private == False) | (Poll.user_id == current_user.id)
+        ).order_by(Poll.created_at.desc()).all()
+    else:
+        polls = Poll.query.filter_by(private=False).order_by(Poll.created_at.desc()).all()
     return render_template('index.html', polls=polls)
 
 @app.route('/register', methods=['GET', 'POST'])
@@ -137,6 +152,7 @@ def create():
         question = request.form['question'].strip()
         options = [opt.strip() for opt in request.form.getlist('options') if opt.strip()]
         expiration = request.form.get('expires_at')
+        private = request.form.get('private') == 'on'
         
         if len(question) < 5:
             flash('Question must be at least 5 characters long', 'error')
@@ -156,8 +172,11 @@ def create():
                 question=question, 
                 slug=Poll().generate_slug(),
                 expires_at=expires_at,
-                user_id=current_user.id
+                user_id=current_user.id,
+                private=private
             )
+            if private:
+                poll.access_token = poll.generate_access_token()
             db.session.add(poll)
             
             for option_text in options:
@@ -253,6 +272,14 @@ def vote(poll_id):
 @app.route('/poll/<string:slug>')
 def view_poll(slug):
     poll = Poll.query.filter_by(slug=slug).first_or_404()
+    token = request.args.get('token')
+    
+    if poll.private:
+        if not current_user.is_authenticated or (current_user.id != poll.user_id):
+            if not token or token != poll.access_token:
+                flash('This is a private poll. Please use the correct access link.', 'error')
+                return redirect(url_for('index'))
+    
     return render_template('poll.html', poll=poll)
 
 @app.route('/poll/<int:poll_id>/details')

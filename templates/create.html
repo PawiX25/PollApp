@@ -46,6 +46,14 @@
                 <p class="mt-1 text-sm text-gray-500">Leave empty for no expiration</p>
             </div>
 
+            <div class="flex items-center">
+                <input type="checkbox" name="private" id="private"
+                       class="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded">
+                <label for="private" class="ml-2 block text-sm text-gray-700">
+                    Make this poll private (only accessible via special link)
+                </label>
+            </div>
+
             <div class="flex items-center justify-between pt-6 border-t">
                 <a href="{{ url_for('index') }}" 
                    class="text-indigo-600 hover:text-indigo-800 font-medium">
