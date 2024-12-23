@@ -50,6 +50,7 @@ class Poll(db.Model):
     user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
     private = db.Column(db.Boolean, default=False)
     access_token = db.Column(db.String(16), unique=True)
+    password_hash = db.Column(db.String(200), nullable=True)
 
     def reset_votes(self):
         for option in self.options:
@@ -66,6 +67,17 @@ class Poll(db.Model):
         if self.private:
             return url_for('view_poll', slug=self.slug, token=self.access_token, _external=_external)
         return url_for('view_poll', slug=self.slug, _external=_external)
+
+    def set_password(self, password):
+        if password:
+            self.password_hash = generate_password_hash(password)
+        else:
+            self.password_hash = None
+
+    def check_password(self, password):
+        if not self.password_hash:
+            return True
+        return check_password_hash(self.password_hash, password)
 
     @property
     def is_expired(self):
@@ -153,6 +165,7 @@ def create():
         options = [opt.strip() for opt in request.form.getlist('options') if opt.strip()]
         expiration = request.form.get('expires_at')
         private = request.form.get('private') == 'on'
+        password = request.form.get('password')
         
         if len(question) < 5:
             flash('Question must be at least 5 characters long', 'error')
@@ -175,6 +188,7 @@ def create():
                 user_id=current_user.id,
                 private=private
             )
+            poll.set_password(password)
             if private:
                 poll.access_token = poll.generate_access_token()
             db.session.add(poll)
@@ -280,7 +294,23 @@ def view_poll(slug):
                 flash('This is a private poll. Please use the correct access link.', 'error')
                 return redirect(url_for('index'))
     
+    if poll.password_hash and 'poll_access_' + str(poll.id) not in session:
+        return redirect(url_for('verify_poll_password', slug=slug))
+    
     return render_template('poll.html', poll=poll)
+
+@app.route('/poll/<string:slug>/verify', methods=['GET', 'POST'])
+def verify_poll_password(slug):
+    poll = Poll.query.filter_by(slug=slug).first_or_404()
+    
+    if request.method == 'POST':
+        password = request.form.get('password')
+        if poll.check_password(password):
+            session['poll_access_' + str(poll.id)] = True
+            return redirect(url_for('view_poll', slug=slug))
+        flash('Incorrect password', 'error')
+    
+    return render_template('verify_password.html', poll=poll)
 
 @app.route('/poll/<int:poll_id>/details')
 @login_required
