@@ -8,6 +8,15 @@ PollApp is a simple polling application built with Flask and SQLAlchemy. Create 
 - Optional expiration date for polls.
 - Real-time vote counting.
 - Lightweight & easy to set up.
+- Password protection for individual polls
+- Private polls with special access links
+- User authentication and profiles
+- Vote tracking to prevent multiple votes
+- Real-time vote statistics and charts
+- Mobile-responsive design using Tailwind CSS
+- Poll management (reset votes, delete polls)
+- Poll expiration system
+- Detailed poll analytics for creators
 
 ## Installation
 
@@ -45,7 +54,41 @@ PollApp is a simple polling application built with Flask and SQLAlchemy. Create 
    ```
    http://127.0.0.1:5000/
    ```
-4. Visit /polls for the list of polls or /create to create a new poll.
+
+### Creating Polls
+
+- Visit `/create` to create a new poll
+- Add multiple options (2-10 choices)
+- Optional settings:
+  - Set an expiration date/time
+  - Make poll private with special access link
+  - Add password protection
+  - Track votes per session
+
+### Managing Polls
+
+- View your polls in the profile dashboard
+- See total votes and active polls
+- Reset votes or delete polls
+- Share polls via generated links
+- View detailed poll statistics with charts
+
+### Security Features
+
+- Session-based voting prevention
+- Password protection for sensitive polls
+- Private polls accessible only via special links
+- User authentication for poll management
+
+## Dependencies
+
+- Flask
+- SQLAlchemy
+- Flask-Login
+- Werkzeug
+- python-dotenv
+- Chart.js (for visualizations)
+- Tailwind CSS (for styling)
 
 ## Contact
 
