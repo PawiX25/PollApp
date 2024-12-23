@@ -17,6 +17,18 @@ PollApp is a simple polling application built with Flask and SQLAlchemy. Create 
 - Poll management (reset votes, delete polls)
 - Poll expiration system
 - Detailed poll analytics for creators
+- Detailed analytics with Chart.js visualizations
+- Duplicate polls as templates
+- Custom poll URLs
+- Session-based voting system
+- Password protection for individual polls
+- Poll expiration settings
+- Multiple choice voting option
+- Mobile-responsive navigation
+- Toast notifications system
+- Animated UI elements
+- Rich poll management interface
+- User profile with statistics
 
 ## Installation
 
