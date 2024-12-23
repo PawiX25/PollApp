@@ -55,12 +55,12 @@
         </div>
 
         <div class="flex justify-between items-center mt-8 pt-6 border-t">
-            <a href="{{ url_for('profile') }}" 
+            <a href="{{ url_for('index') }}" 
                class="inline-flex items-center space-x-2 text-indigo-600 hover:text-indigo-800">
                 <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"/>
                 </svg>
-                <span>Back to Profile</span>
+                <span>Back to My Polls</span>
             </a>
             {% if current_user.id == poll.user_id %}
             <div class="flex space-x-4">
