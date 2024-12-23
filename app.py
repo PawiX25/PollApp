@@ -112,12 +112,9 @@ def landing():
 @app.route('/polls')
 def index():
     if current_user.is_authenticated:
-        polls = Poll.query.filter(
-            (Poll.private == False) | (Poll.user_id == current_user.id)
-        ).order_by(Poll.created_at.desc()).all()
-    else:
-        polls = Poll.query.filter_by(private=False).order_by(Poll.created_at.desc()).all()
-    return render_template('index.html', polls=polls)
+        polls = Poll.query.filter_by(user_id=current_user.id).order_by(Poll.created_at.desc()).all()
+        return render_template('index.html', polls=polls)
+    return redirect(url_for('login'))
 
 @app.route('/register', methods=['GET', 'POST'])
 def register():
