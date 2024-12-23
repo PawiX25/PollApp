@@ -386,6 +386,37 @@ def edit_poll(poll_id):
     
     return render_template('edit_poll.html', poll=poll)
 
+@app.route('/poll/<int:poll_id>/duplicate')
+@login_required
+def duplicate_poll(poll_id):
+    original_poll = Poll.query.get_or_404(poll_id)
+    
+    try:
+        new_poll = Poll(
+            question=f"Copy of {original_poll.question}",
+            slug=Poll().generate_slug(),
+            user_id=current_user.id,
+            private=original_poll.private
+        )
+        
+        if new_poll.private:
+            new_poll.access_token = new_poll.generate_access_token()
+        
+        for option in original_poll.options:
+            new_option = Option(text=option.text, votes=0)
+            new_poll.options.append(new_option)
+        
+        db.session.add(new_poll)
+        db.session.commit()
+        
+        flash('Poll duplicated successfully! You can now edit it.', 'success')
+        return redirect(url_for('edit_poll', poll_id=new_poll.id))
+    
+    except Exception as e:
+        db.session.rollback()
+        flash('An error occurred while duplicating the poll', 'error')
+        return redirect(url_for('poll_details', poll_id=poll_id))
+
 @app.route('/profile')
 @login_required
 def profile():
