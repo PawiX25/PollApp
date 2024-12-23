@@ -5,15 +5,21 @@
 {% block content %}
 <div class="max-w-3xl mx-auto">
     <div class="bg-white shadow-xl rounded-2xl p-8">
-        <h1 class="text-3xl font-bold text-gray-900 mb-8">{{ poll.question }}</h1>
+        <h1 class="text-3xl font-bold text-gray-900 mb-4">{{ poll.question }}</h1>
+        
+        {% if poll.multiple_votes %}
+        <p class="text-sm text-gray-500 mb-4">You can select multiple options in this poll.</p>
+        {% endif %}
         
         {% if not poll.is_expired %}
             <form action="{{ url_for('vote', poll_id=poll.id) }}" method="post" class="space-y-4">
                 {% for option in poll.options %}
                 <label class="block p-4 hover:bg-indigo-50 rounded-xl transition-colors cursor-pointer">
                     <div class="flex items-center space-x-3">
-                        <input type="radio" name="option" value="{{ option.id }}" 
-                               class="h-5 w-5 text-indigo-600 focus:ring-indigo-500 border-gray-300">
+                        <input type="{{ 'checkbox' if poll.multiple_votes else 'radio' }}" 
+                               name="options[]" value="{{ option.id }}" 
+                               class="h-5 w-5 text-indigo-600 focus:ring-indigo-500 
+                                      {{ 'rounded' if poll.multiple_votes else 'rounded-full' }}">
                         <div class="flex-grow">
                             <span class="text-lg text-gray-900">{{ option.text }}</span>
                             <div class="mt-1 text-sm text-gray-500">{{ option.votes }} votes</div>

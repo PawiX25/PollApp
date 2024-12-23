@@ -76,6 +76,19 @@
                         <label for="private" class="text-gray-700">Make this poll private</label>
                     </div>
 
+                    <div class="flex items-center space-x-3">
+                        <input type="checkbox" name="multiple_votes" id="multiple_votes"
+                               {% if poll.multiple_votes %}checked{% endif %}
+                               class="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded">
+                        <label for="multiple_votes" class="text-gray-700 flex items-center space-x-2">
+                            <svg class="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
+                                      d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                            </svg>
+                            <span>Allow selecting multiple options</span>
+                        </label>
+                    </div>
+
                     <div class="space-y-2">
                         <label for="password" class="flex items-center space-x-2 text-gray-700">
                             <svg class="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">

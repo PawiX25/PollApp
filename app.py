@@ -51,6 +51,7 @@ class Poll(db.Model):
     private = db.Column(db.Boolean, default=False)
     access_token = db.Column(db.String(16), unique=True)
     password_hash = db.Column(db.String(200), nullable=True)
+    multiple_votes = db.Column(db.Boolean, default=False)
 
     def reset_votes(self):
         for option in self.options:
@@ -166,6 +167,7 @@ def create():
         expiration = request.form.get('expires_at')
         private = request.form.get('private') == 'on'
         password = request.form.get('password')
+        multiple_votes = request.form.get('multiple_votes') == 'on'
         
         if len(question) < 5:
             flash('Question must be at least 5 characters long', 'error')
@@ -186,7 +188,8 @@ def create():
                 slug=Poll().generate_slug(),
                 expires_at=expires_at,
                 user_id=current_user.id,
-                private=private
+                private=private,
+                multiple_votes=multiple_votes
             )
             poll.set_password(password)
             if private:
@@ -253,10 +256,14 @@ def vote(poll_id):
     if 'session_id' not in session:
         session['session_id'] = os.urandom(16).hex()
 
-    option_id = request.form.get('option')
+    option_ids = request.form.getlist('options[]')
     
-    if not option_id:
-        flash('Please select an option to vote', 'error')
+    if not option_ids:
+        flash('Please select at least one option to vote', 'error')
+        return redirect(url_for('index'))
+    
+    if not poll.multiple_votes and len(option_ids) > 1:
+        flash('This poll only allows voting for one option', 'error')
         return redirect(url_for('index'))
     
     existing_vote = Vote.query.filter_by(
@@ -269,11 +276,14 @@ def vote(poll_id):
         return redirect(url_for('index'))
     
     try:
-        option = Option.query.get_or_404(option_id)
-        option.votes += 1
-        
-        vote = Vote(poll_id=poll_id, option_id=option_id, session_id=session['session_id'])
-        db.session.add(vote)
+        for option_id in option_ids:
+            option = Option.query.get_or_404(option_id)
+            if option.poll_id != poll_id:
+                raise ValueError("Invalid option for this poll")
+            option.votes += 1
+            
+            vote = Vote(poll_id=poll_id, option_id=option_id, session_id=session['session_id'])
+            db.session.add(vote)
         
         db.session.commit()
         flash('Vote recorded successfully!', 'success')
@@ -333,6 +343,7 @@ def edit_poll(poll_id):
         expiration = request.form.get('expires_at')
         private = request.form.get('private') == 'on'
         password = request.form.get('password')
+        multiple_votes = request.form.get('multiple_votes') == 'on'
         
         if len(question) < 5:
             flash('Question must be at least 5 characters long', 'error')
@@ -351,6 +362,7 @@ def edit_poll(poll_id):
             poll.question = question
             poll.expires_at = expires_at
             poll.private = private
+            poll.multiple_votes = multiple_votes
             poll.set_password(password)
             
             if private and not poll.access_token:
