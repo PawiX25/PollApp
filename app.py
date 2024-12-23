@@ -322,6 +322,70 @@ def poll_details(poll_id):
     total_votes = sum(option.votes for option in poll.options)
     return render_template('poll_details.html', poll=poll, total_votes=total_votes)
 
+@app.route('/poll/<int:poll_id>/edit', methods=['GET', 'POST'])
+@login_required
+def edit_poll(poll_id):
+    poll = Poll.query.get_or_404(poll_id)
+    if poll.user_id != current_user.id:
+        flash('You are not authorized to edit this poll', 'error')
+        return redirect(url_for('index'))
+    
+    if request.method == 'POST':
+        question = request.form['question'].strip()
+        options = [opt.strip() for opt in request.form.getlist('options') if opt.strip()]
+        expiration = request.form.get('expires_at')
+        private = request.form.get('private') == 'on'
+        password = request.form.get('password')
+        
+        if len(question) < 5:
+            flash('Question must be at least 5 characters long', 'error')
+            return render_template('edit_poll.html', poll=poll)
+        
+        if len(options) < 2:
+            flash('You must provide at least 2 options', 'error')
+            return render_template('edit_poll.html', poll=poll)
+            
+        try:
+            if expiration:
+                expires_at = datetime.fromisoformat(expiration).astimezone(timezone.utc)
+            else:
+                expires_at = None
+
+            poll.question = question
+            poll.expires_at = expires_at
+            poll.private = private
+            poll.set_password(password)
+            
+            if private and not poll.access_token:
+                poll.access_token = poll.generate_access_token()
+            
+            existing_options = {opt.id: opt for opt in poll.options}
+            option_ids = request.form.getlist('option_ids')
+            
+            for i, text in enumerate(options):
+                if i < len(option_ids) and option_ids[i]:
+                    opt_id = int(option_ids[i])
+                    if opt_id in existing_options:
+                        existing_options[opt_id].text = text
+                else:
+                    new_option = Option(text=text, poll=poll)
+                    db.session.add(new_option)
+            
+            for opt_id, option in existing_options.items():
+                if str(opt_id) not in option_ids:
+                    db.session.delete(option)
+            
+            db.session.commit()
+            flash('Poll updated successfully!', 'success')
+            return redirect(url_for('poll_details', poll_id=poll.id))
+            
+        except Exception as e:
+            db.session.rollback()
+            flash('An error occurred while updating the poll', 'error')
+            return render_template('edit_poll.html', poll=poll)
+    
+    return render_template('edit_poll.html', poll=poll)
+
 @app.route('/profile')
 @login_required
 def profile():

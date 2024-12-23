@@ -1,0 +1,242 @@
+{% extends "base.html" %}
+
+{% block title %}Edit Poll - {{ poll.question }}{% endblock %}
+
+{% block content %}
+<div class="max-w-3xl mx-auto">
+    <div class="bg-white shadow-2xl rounded-2xl p-8">
+        <h1 class="text-3xl font-black text-transparent bg-clip-text bg-gradient-to-r from-indigo-600 to-purple-600 mb-8">Edit Poll</h1>
+
+        <form method="post" class="space-y-8" id="pollForm">
+            <div class="space-y-2 group">
+                <label for="question" class="block text-lg font-semibold text-gray-900">Question</label>
+                <input type="text" name="question" id="question" required minlength="5"
+                       value="{{ poll.question }}"
+                       class="mt-1 block w-full rounded-xl border-gray-300 shadow-sm 
+                              focus:border-indigo-500 focus:ring-indigo-500 transition-all
+                              group-hover:border-indigo-300 text-lg py-3">
+            </div>
+
+            <div class="space-y-4">
+                <div class="flex justify-between items-center">
+                    <label class="block text-lg font-semibold text-gray-900">Poll Options</label>
+                    <button type="button" id="addOption" 
+                            class="text-indigo-600 hover:text-indigo-800 flex items-center space-x-1">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"/>
+                        </svg>
+                        <span>Add Option</span>
+                    </button>
+                </div>
+                <div id="optionsContainer" class="space-y-3">
+                    {% for option in poll.options %}
+                    <div class="option-input group animate__animated animate__fadeIn">
+                        <div class="flex items-center space-x-2">
+                            <span class="text-gray-400 option-number">{{ loop.index }}.</span>
+                            <input type="text" name="options" required value="{{ option.text }}"
+                                   class="flex-1 rounded-lg border-gray-300 shadow-sm 
+                                          focus:border-indigo-500 focus:ring-indigo-500
+                                          group-hover:border-indigo-300">
+                            <input type="hidden" name="option_ids" value="{{ option.id }}">
+                            {% if loop.index > 2 %}
+                            <button type="button" class="text-red-500 hover:text-red-700 delete-option">
+                                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
+                                </svg>
+                            </button>
+                            {% endif %}
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+
+            <div class="bg-gray-50 rounded-xl p-6 space-y-6">
+                <h3 class="text-lg font-semibold text-gray-900">Settings</h3>
+                
+                <div class="space-y-2">
+                    <label for="expires_at" class="flex items-center space-x-2 text-gray-700">
+                        <svg class="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
+                                  d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                        </svg>
+                        <span>Poll Expiration (optional)</span>
+                    </label>
+                    <input type="datetime-local" name="expires_at" id="expires_at"
+                           value="{{ poll.expires_at.strftime('%Y-%m-%dT%H:%M') if poll.expires_at else '' }}"
+                           class="w-full rounded-lg border-gray-300 shadow-sm 
+                                  focus:border-indigo-500 focus:ring-indigo-500">
+                </div>
+
+                <div class="space-y-4">
+                    <div class="flex items-center space-x-3">
+                        <input type="checkbox" name="private" id="private"
+                               {% if poll.private %}checked{% endif %}
+                               class="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded">
+                        <label for="private" class="text-gray-700">Make this poll private</label>
+                    </div>
+
+                    <div class="space-y-2">
+                        <label for="password" class="flex items-center space-x-2 text-gray-700">
+                            <svg class="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
+                                      d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z"/>
+                            </svg>
+                            <span>Password Protection (optional)</span>
+                        </label>
+                        <input type="password" name="password" id="password"
+                               placeholder="Leave empty to keep current password"
+                               class="w-full rounded-lg border-gray-300 shadow-sm 
+                                      focus:border-indigo-500 focus:ring-indigo-500">
+                    </div>
+                </div>
+            </div>
+
+            <div class="flex justify-between pt-6">
+                <a href="{{ url_for('poll_details', poll_id=poll.id) }}" 
+                   class="text-gray-600 hover:text-gray-800">Cancel</a>
+                <button type="submit" 
+                        class="gradient-bg text-white px-6 py-2 rounded-lg hover-scale">
+                    Save Changes
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const optionsContainer = document.getElementById('optionsContainer');
+    const addOptionBtn = document.getElementById('addOption');
+    const maxOptions = 10;
+    const minOptions = 2;
+
+    function updateOptionNumbers() {
+        document.querySelectorAll('.option-number').forEach((span, index) => {
+            span.textContent = `${index + 1}.`;
+        });
+    }
+
+    function createOptionInput(text = '', optionId = '') {
+        const optionCount = optionsContainer.children.length;
+        if (optionCount >= maxOptions) {
+            showToast('Maximum 10 options allowed', 'error');
+            return;
+        }
+
+        const div = document.createElement('div');
+        div.className = 'option-input group animate__animated animate__fadeIn';
+        div.innerHTML = `
+            <div class="flex items-center space-x-2">
+                <span class="text-gray-400 option-number">${optionCount + 1}.</span>
+                <input type="text" name="options" value="${text}" required placeholder="Enter option..."
+                       class="flex-1 rounded-lg border-gray-300 shadow-sm 
+                              focus:border-indigo-500 focus:ring-indigo-500
+                              group-hover:border-indigo-300">
+                <input type="hidden" name="option_ids" value="${optionId}">
+                ${optionCount >= minOptions ? `
+                    <button type="button" class="text-red-500 hover:text-red-700 delete-option">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
+                                  d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
+                        </svg>
+                    </button>
+                ` : ''}
+            </div>
+        `;
+
+        optionsContainer.appendChild(div);
+    }
+
+    addOptionBtn.addEventListener('click', () => createOptionInput());
+
+    optionsContainer.addEventListener('click', function(e) {
+        if (e.target.closest('.delete-option')) {
+            const optionInput = e.target.closest('.option-input');
+            if (optionsContainer.children.length > minOptions) {
+                optionInput.classList.remove('animate__fadeIn');
+                optionInput.classList.add('animate__fadeOut');
+                setTimeout(() => {
+                    optionInput.remove();
+                    updateOptionNumbers();
+                }, 500);
+            } else {
+                showToast('Minimum 2 options required', 'error');
+            }
+        }
+    });
+
+    document.getElementById('pollForm').addEventListener('submit', function(e) {
+        const question = document.getElementById('question').value.trim();
+        const options = Array.from(document.getElementsByName('options'))
+                            .map(input => input.value.trim())
+                            .filter(value => value.length > 0);
+
+        if (question.length < 5) {
+            e.preventDefault();
+            showToast('Question must be at least 5 characters long', 'error');
+            return;
+        }
+
+        if (options.length < 2) {
+            e.preventDefault();
+            showToast('You must provide at least 2 options', 'error');
+            return;
+        }
+
+        if (new Set(options).size !== options.length) {
+            e.preventDefault();
+            showToast('All options must be unique', 'error');
+            return;
+        }
+    });
+
+    const expiresAt = document.getElementById('expires_at');
+    if (expiresAt) {
+        const now = new Date();
+        now.setMinutes(now.getMinutes() - now.getTimezoneOffset());
+        expiresAt.min = now.toISOString().slice(0, 16);
+    }
+
+    const privateCheckbox = document.getElementById('private');
+    const passwordField = document.getElementById('password');
+    
+    privateCheckbox?.addEventListener('change', function() {
+        if (this.checked) {
+            passwordField.placeholder = 'Set a password (optional) for additional security';
+        } else {
+            passwordField.placeholder = 'Password protection not available for public polls';
+            passwordField.value = '';
+            passwordField.disabled = true;
+        }
+        passwordField.disabled = !this.checked;
+    });
+
+    const tooltips = document.querySelectorAll('[data-tooltip]');
+    tooltips.forEach(element => {
+        element.addEventListener('mouseenter', e => {
+            const tooltip = document.createElement('div');
+            tooltip.className = 'absolute z-50 p-2 bg-gray-900 text-white text-sm rounded shadow-lg';
+            tooltip.textContent = e.target.dataset.tooltip;
+            tooltip.style.top = `${e.target.offsetTop - 5}px`;
+            tooltip.style.left = `${e.target.offsetLeft + e.target.offsetWidth + 5}px`;
+            document.body.appendChild(tooltip);
+            
+            e.target.addEventListener('mouseleave', () => tooltip.remove(), { once: true });
+        });
+    });
+});
+
+let formChanged = false;
+document.getElementById('pollForm').addEventListener('change', () => formChanged = true);
+
+window.addEventListener('beforeunload', (e) => {
+    if (formChanged) {
+        e.preventDefault();
+        e.returnValue = '';
+    }
+});
+
+document.getElementById('pollForm').addEventListener('submit', () => formChanged = false);
+</script>
+{% endblock %}
