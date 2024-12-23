@@ -12,6 +12,30 @@
         .mobile-menu { transition: transform 0.3s ease-in-out; }
         .mobile-menu.hidden { transform: translateX(-100%); }
         .mobile-menu.show { transform: translateX(0); }
+
+        .toast-container {
+            position: fixed;
+            top: 1rem;
+            right: 1rem;
+            z-index: 50;
+            pointer-events: none;
+        }
+        
+        .toast {
+            animation: slideIn 0.3s ease-in-out forwards;
+            pointer-events: auto;
+        }
+        
+        @keyframes slideIn {
+            from {
+                transform: translateX(100%);
+                opacity: 0;
+            }
+            to {
+                transform: translateX(0);
+                opacity: 1;
+            }
+        }
     </style>
 </head>
 <body class="bg-gradient-to-br from-gray-50 to-indigo-50/30 min-h-screen">
@@ -67,7 +91,7 @@
         {% with messages = get_flashed_messages(with_categories=true) %}
             {% if messages %}
                 {% for category, message in messages %}
-                    <div class="animate__animated animate__fadeIn rounded-md p-4 mb-4 {% if category == 'error' %}bg-red-50 text-red-700{% else %}bg-green-50 text-green-700{% endif %}">
+                    <div data-flash-message data-flash-type="{{ category }}" class="hidden">
                         {{ message }}
                     </div>
                 {% endfor %}
@@ -76,6 +100,8 @@
         
         {% block content %}{% endblock %}
     </main>
+
+    <div id="toast-container" class="toast-container"></div>
 
     <script>
         const mobileMenuButton = document.getElementById('mobile-menu-button');
@@ -91,6 +117,43 @@
                 mobileMenu.classList.add('hidden');
                 mobileMenu.classList.remove('show');
             }
+        });
+
+        function showToast(message, type = 'success') {
+            const container = document.getElementById('toast-container');
+            const toast = document.createElement('div');
+            
+            const bgColor = type === 'error' ? 'bg-red-500' : 'bg-green-500';
+            
+            toast.className = `toast ${bgColor} text-white px-6 py-3 rounded-lg shadow-lg mb-3 flex items-center`;
+            toast.innerHTML = `
+                <div class="mr-2">
+                    ${type === 'error' ? 
+                        '<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>' :
+                        '<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>'
+                    }
+                </div>
+                <span>${message}</span>
+            `;
+            
+            container.appendChild(toast);
+            
+            setTimeout(() => {
+                toast.style.animation = 'slideOut 0.3s ease-in-out forwards';
+                setTimeout(() => {
+                    toast.remove();
+                }, 300);
+            }, 3000);
+        }
+
+        document.addEventListener('DOMContentLoaded', function() {
+            const flashMessages = document.querySelectorAll('[data-flash-message]');
+            flashMessages.forEach(message => {
+                const type = message.dataset.flashType;
+                const text = message.textContent.trim();
+                showToast(text, type);
+                message.remove();
+            });
         });
     </script>
 </body>
