@@ -102,6 +102,9 @@ class Vote(db.Model):
     timestamp = db.Column(db.DateTime, default=datetime.utcnow)
     session_id = db.Column(db.String(100), nullable=False)
 
+with app.app_context():
+    db.create_all()
+
 @app.route('/')
 def landing():
     return render_template('landing.html')
@@ -336,6 +339,4 @@ def profile():
                          total_votes=total_votes)
 
 if __name__ == '__main__':
-    with app.app_context():
-        db.create_all()
     app.run()
