@@ -199,7 +199,7 @@ def create():
         expiration = request.form.get('expires_at')
         private = request.form.get('private') == 'on'
         password = request.form.get('password')
-        multiple_votes = request.form.get('multiple_votes') == 'on'
+        multiple_votes = request.form.get('multiple_votes') == 'true'
         
         if len(question) < 5:
             flash('Question must be at least 5 characters long', 'error')
@@ -386,7 +386,7 @@ def edit_poll(poll_id):
         expiration = request.form.get('expires_at')
         private = request.form.get('private') == 'on'
         password = request.form.get('password')
-        multiple_votes = request.form.get('multiple_votes') == 'on'
+        multiple_votes = request.form.get('multiple_votes') == 'true'
         
         if len(question) < 5:
             flash('Question must be at least 5 characters long', 'error')

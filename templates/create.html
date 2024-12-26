@@ -61,6 +61,51 @@
                 </div>
             </div>
 
+            <div class="space-y-4">
+                <label class="block text-lg font-semibold text-gray-900">Poll Type</label>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <label class="relative flex cursor-pointer rounded-lg border bg-white p-4 shadow-sm focus:outline-none">
+                        <input type="radio" name="poll_type" value="single" class="peer sr-only" checked 
+                               onchange="document.getElementById('multiple_votes').value='false'">
+                        <div class="flex w-full items-center justify-between">
+                            <div>
+                                <p class="text-gray-900 font-medium">Single Choice</p>
+                                <p class="text-gray-500 text-sm">Participants can select one option</p>
+                            </div>
+                            <svg class="h-5 w-5 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                            </svg>
+                        </div>
+                        <div class="absolute -inset-px rounded-lg border-2 pointer-events-none peer-checked:border-indigo-500"></div>
+                    </label>
+
+                    <label class="relative flex cursor-pointer rounded-lg border bg-white p-4 shadow-sm focus:outline-none">
+                        <input type="radio" name="poll_type" value="multiple" class="peer sr-only"
+                               onchange="document.getElementById('multiple_votes').value='true'">
+                        <div class="flex w-full items-center justify-between">
+                            <div>
+                                <p class="text-gray-900 font-medium">Multiple Choice</p>
+                                <p class="text-gray-500 text-sm">Participants can select multiple options</p>
+                            </div>
+                            <svg class="h-5 w-5 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                            </svg>
+                        </div>
+                        <div class="absolute -inset-px rounded-lg border-2 pointer-events-none peer-checked:border-indigo-500"></div>
+                    </label>
+                </div>
+            </div>
+
+            <input type="hidden" name="multiple_votes" id="multiple_votes" value="false">
+            
+            <script>
+                document.querySelectorAll('input[name="poll_type"]').forEach(radio => {
+                    radio.addEventListener('change', function() {
+                        document.getElementById('multiple_votes').value = this.value === 'multiple';
+                    });
+                });
+            </script>
+
             <div class="space-y-2">
                 <label for="image" class="block text-lg font-semibold text-gray-900">Poll Image (optional)</label>
                 <input type="file" name="image" id="image" accept="image/*"
@@ -102,18 +147,6 @@
                                       d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/>
                             </svg>
                             <span>Make this poll private (accessible only via special link)</span>
-                        </label>
-                    </div>
-
-                    <div class="flex items-center space-x-3">
-                        <input type="checkbox" name="multiple_votes" id="multiple_votes"
-                               class="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded">
-                        <label for="multiple_votes" class="text-gray-700 flex items-center space-x-2">
-                            <svg class="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
-                                      d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
-                            </svg>
-                            <span>Allow selecting multiple options</span>
                         </label>
                     </div>
 
@@ -224,6 +257,18 @@ document.addEventListener('DOMContentLoaded', function() {
             reader.readAsDataURL(file);
         } else {
             preview.classList.add('hidden');
+        }
+    });
+
+    document.getElementById('pollForm').addEventListener('submit', function(e) {
+        const options = Array.from(document.getElementsByName('options'))
+                            .map(input => input.value.trim())
+                            .filter(value => value.length > 0);
+
+        if (new Set(options).size !== options.length) {
+            e.preventDefault();
+            showToast('All options must be unique', 'error');
+            return;
         }
     });
 });
