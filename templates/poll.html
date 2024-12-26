@@ -9,7 +9,12 @@
         <div class="mb-6">
             <img src="{{ url_for('static', filename=poll.image_path) }}" 
                  alt="Poll image" 
-                 class="w-full rounded-xl object-cover max-h-96">
+                 class="w-full rounded-xl object-cover max-h-96 zoomable"
+                 onclick="openImageModal(this.src)">
+        </div>
+
+        <div id="imageModal" class="modal" onclick="closeImageModal()">
+            <img src="" alt="Full size image">
         </div>
         {% endif %}
         <h1 class="text-3xl font-bold text-gray-900 mb-4">{{ poll.question }}</h1>
@@ -56,4 +61,26 @@
         </div>
     </div>
 </div>
+
+<script>
+function openImageModal(imgSrc) {
+    const modal = document.getElementById('imageModal');
+    const modalImg = modal.querySelector('img');
+    modalImg.src = imgSrc;
+    modal.classList.add('show');
+    document.body.style.overflow = 'hidden';
+}
+
+function closeImageModal() {
+    const modal = document.getElementById('imageModal');
+    modal.classList.remove('show');
+    document.body.style.overflow = '';
+}
+
+document.addEventListener('keydown', function(e) {
+    if (e.key === 'Escape') {
+        closeImageModal();
+    }
+});
+</script>
 {% endblock %}
