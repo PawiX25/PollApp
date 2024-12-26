@@ -1,4 +1,4 @@
-from flask import Flask, render_template, request, redirect, url_for, flash, session
+from flask import Flask, render_template, request, redirect, url_for, flash, session, send_file
 from flask_sqlalchemy import SQLAlchemy
 from flask_login import LoginManager, UserMixin, login_user, logout_user, login_required, current_user
 from werkzeug.security import generate_password_hash, check_password_hash
@@ -8,6 +8,11 @@ import os
 import uuid
 from werkzeug.utils import secure_filename
 from pathlib import Path
+from io import BytesIO
+from reportlab.lib import colors
+from reportlab.lib.pagesizes import letter
+from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Paragraph
+from reportlab.lib.styles import getSampleStyleSheet
 
 load_dotenv()
 
@@ -491,6 +496,60 @@ def profile():
                          user_polls=user_polls,
                          active_polls=active_polls,
                          total_votes=total_votes)
+
+@app.route('/poll/<int:poll_id>/download')
+@login_required
+def download_results(poll_id):
+    poll = Poll.query.get_or_404(poll_id)
+    if poll.user_id != current_user.id:
+        flash('You are not authorized to download these results', 'error')
+        return redirect(url_for('index'))
+
+    return download_pdf(poll)
+
+def download_pdf(poll):
+    buffer = BytesIO()
+    doc = SimpleDocTemplate(buffer, pagesize=letter)
+    styles = getSampleStyleSheet()
+    elements = []
+    
+    elements.append(Paragraph(f"Poll Results: {poll.question}", styles['Title']))
+    elements.append(Paragraph(f"Created: {poll.created_at.strftime('%Y-%m-%d %H:%M UTC')}", styles['Normal']))
+    elements.append(Paragraph(f"Status: {'Expired' if poll.is_expired else 'Active'}", styles['Normal']))
+    
+    total_votes = sum(option.votes for option in poll.options)
+    
+    data = [['Option', 'Votes', 'Percentage']]
+    for option in poll.options:
+        percentage = (option.votes / total_votes * 100) if total_votes > 0 else 0
+        data.append([option.text, str(option.votes), f'{percentage:.1f}%'])
+    
+    data.append(['Total', str(total_votes), '100%'])
+    
+    table = Table(data)
+    table.setStyle(TableStyle([
+        ('BACKGROUND', (0, 0), (-1, 0), colors.grey),
+        ('TEXTCOLOR', (0, 0), (-1, 0), colors.whitesmoke),
+        ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
+        ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
+        ('FONTSIZE', (0, 0), (-1, 0), 14),
+        ('BOTTOMPADDING', (0, 0), (-1, 0), 12),
+        ('BACKGROUND', (0, -1), (-1, -1), colors.lightgrey),
+        ('TEXTCOLOR', (0, -1), (-1, -1), colors.black),
+        ('FONTNAME', (0, -1), (-1, -1), 'Helvetica-Bold'),
+        ('GRID', (0, 0), (-1, -1), 1, colors.black)
+    ]))
+    
+    elements.append(table)
+    doc.build(elements)
+    
+    buffer.seek(0)
+    return send_file(
+        buffer,
+        mimetype='application/pdf',
+        as_attachment=True,
+        download_name=f'poll_results_{poll.id}.pdf'
+    )
 
 if __name__ == '__main__':
     app.run()
