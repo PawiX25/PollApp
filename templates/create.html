@@ -17,7 +17,7 @@
             {% endif %}
         {% endwith %}
 
-        <form method="post" class="space-y-8" id="pollForm">
+        <form method="post" class="space-y-8" id="pollForm" enctype="multipart/form-data">
             <div class="space-y-2 group">
                 <label for="question" class="block text-lg font-semibold text-gray-900">What's your question?</label>
                 <input type="text" name="question" id="question" required minlength="5"
@@ -58,6 +58,21 @@
                                           group-hover:border-indigo-300">
                         </div>
                     </div>
+                </div>
+            </div>
+
+            <div class="space-y-2">
+                <label for="image" class="block text-lg font-semibold text-gray-900">Poll Image (optional)</label>
+                <input type="file" name="image" id="image" accept="image/*"
+                       class="block w-full text-sm text-gray-500
+                              file:mr-4 file:py-2 file:px-4
+                              file:rounded-full file:border-0
+                              file:text-sm file:font-semibold
+                              file:bg-indigo-50 file:text-indigo-700
+                              hover:file:bg-indigo-100">
+                <p class="text-sm text-gray-500">Supported formats: PNG, JPG, JPEG, GIF, WEBP (max 16MB)</p>
+                <div id="image-preview" class="hidden mt-2">
+                    <img src="" alt="Preview" class="max-h-48 rounded-lg">
                 </div>
             </div>
 
@@ -193,6 +208,22 @@ document.addEventListener('DOMContentLoaded', function() {
             } else {
                 alert('Minimum 2 options required');
             }
+        }
+    });
+
+    document.getElementById('image').addEventListener('change', function(e) {
+        const preview = document.getElementById('image-preview');
+        const file = e.target.files[0];
+        
+        if (file) {
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                preview.querySelector('img').src = e.target.result;
+                preview.classList.remove('hidden');
+            }
+            reader.readAsDataURL(file);
+        } else {
+            preview.classList.add('hidden');
         }
     });
 });

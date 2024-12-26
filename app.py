@@ -6,12 +6,17 @@ from datetime import datetime, timezone
 from dotenv import load_dotenv
 import os
 import uuid
+from werkzeug.utils import secure_filename
+from pathlib import Path
 
 load_dotenv()
 
 app = Flask(__name__)
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///polls.db'
 app.config['SECRET_KEY'] = os.getenv('FLASK_SECRET_KEY')
+app.config['UPLOAD_FOLDER'] = 'static/uploads'
+app.config['MAX_CONTENT_LENGTH'] = 16 * 1024 * 1024
+ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg', 'gif', 'webp'}
 db = SQLAlchemy(app)
 
 login_manager = LoginManager()
@@ -40,6 +45,17 @@ class User(UserMixin, db.Model):
 def load_user(id):
     return User.query.get(int(id))
 
+def allowed_file(filename):
+    return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
+
+def get_file_extension(filename):
+    return Path(filename).suffix
+
+def generate_image_filename(original_filename):
+    """Generate a clean filename while preserving the original extension"""
+    clean_filename = str(Path(f"{uuid.uuid4()}{get_file_extension(original_filename)}")).replace('\\', '/')
+    return clean_filename
+
 class Poll(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     slug = db.Column(db.String(100), unique=True, nullable=False)
@@ -52,6 +68,7 @@ class Poll(db.Model):
     access_token = db.Column(db.String(16), unique=True)
     password_hash = db.Column(db.String(200), nullable=True)
     multiple_votes = db.Column(db.Boolean, default=False)
+    image_path = db.Column(db.String(200))
 
     def reset_votes(self):
         for option in self.options:
@@ -89,6 +106,16 @@ class Poll(db.Model):
         else:
             aware_expires_at = self.expires_at
         return datetime.now(timezone.utc) > aware_expires_at
+
+    def delete_image(self):
+        if self.image_path:
+            try:
+                file_path = Path(app.root_path) / 'static' / self.image_path
+                if file_path.exists():
+                    file_path.unlink()
+                self.image_path = None
+            except OSError:
+                pass
 
 class Option(db.Model):
     id = db.Column(db.Integer, primary_key=True)
@@ -183,13 +210,23 @@ def create():
             else:
                 expires_at = None
 
+            image = request.files.get('image')
+            image_path = None
+            if image and allowed_file(image.filename):
+                filename = generate_image_filename(image.filename)
+                upload_path = Path(app.root_path) / 'static' / 'uploads'
+                upload_path.mkdir(exist_ok=True)
+                image.save(upload_path / filename)
+                image_path = f'uploads/{filename}'
+
             poll = Poll(
                 question=question, 
                 slug=Poll().generate_slug(),
                 expires_at=expires_at,
                 user_id=current_user.id,
                 private=private,
-                multiple_votes=multiple_votes
+                multiple_votes=multiple_votes,
+                image_path=image_path
             )
             poll.set_password(password)
             if private:
@@ -218,6 +255,7 @@ def delete_poll(poll_id):
         flash('You are not authorized to delete this poll', 'error')
         return redirect(url_for('index'))
     try:
+        poll.delete_image()
         # First delete all votes associated with this poll's options
         Vote.query.filter(Vote.option_id.in_([opt.id for opt in poll.options])).delete(synchronize_session=False)
         # Then delete the poll (will cascade delete options)
@@ -364,6 +402,18 @@ def edit_poll(poll_id):
             poll.private = private
             poll.multiple_votes = multiple_votes
             poll.set_password(password)
+
+            image = request.files.get('image')
+            if image and allowed_file(image.filename):
+                poll.delete_image()
+                
+                filename = generate_image_filename(image.filename)
+                upload_path = Path(app.root_path) / 'static' / 'uploads'
+                upload_path.mkdir(exist_ok=True)
+                image.save(upload_path / filename)
+                poll.image_path = f'uploads/{filename}'
+            elif request.form.get('remove_image'):
+                poll.delete_image()
             
             if private and not poll.access_token:
                 poll.access_token = poll.generate_access_token()

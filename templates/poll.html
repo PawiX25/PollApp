@@ -5,6 +5,13 @@
 {% block content %}
 <div class="max-w-3xl mx-auto">
     <div class="bg-white shadow-xl rounded-2xl p-8">
+        {% if poll.image_path %}
+        <div class="mb-6">
+            <img src="{{ url_for('static', filename=poll.image_path) }}" 
+                 alt="Poll image" 
+                 class="w-full rounded-xl object-cover max-h-96">
+        </div>
+        {% endif %}
         <h1 class="text-3xl font-bold text-gray-900 mb-4">{{ poll.question }}</h1>
         
         {% if poll.multiple_votes %}

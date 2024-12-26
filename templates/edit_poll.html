@@ -7,7 +7,7 @@
     <div class="bg-white shadow-2xl rounded-2xl p-8">
         <h1 class="text-3xl font-black text-transparent bg-clip-text bg-gradient-to-r from-indigo-600 to-purple-600 mb-8">Edit Poll</h1>
 
-        <form method="post" class="space-y-8" id="pollForm">
+        <form method="post" class="space-y-8" id="pollForm" enctype="multipart/form-data">
             <div class="space-y-2 group">
                 <label for="question" class="block text-lg font-semibold text-gray-900">Question</label>
                 <input type="text" name="question" id="question" required minlength="5"
@@ -49,6 +49,36 @@
                     </div>
                     {% endfor %}
                 </div>
+            </div>
+
+            <div class="space-y-2">
+                <label for="image" class="block text-lg font-semibold text-gray-900">Poll Image</label>
+                {% if poll.image_path %}
+                    <div class="mb-4">
+                        <img src="{{ url_for('static', filename=poll.image_path) }}" 
+                             alt="Current poll image" 
+                             class="max-h-48 rounded-lg">
+                        <div class="mt-2">
+                            <label class="inline-flex items-center">
+                                <input type="checkbox" name="remove_image" class="text-red-600 rounded">
+                                <span class="ml-2 text-sm text-red-600">Remove current image</span>
+                            </label>
+                        </div>
+                    </div>
+                {% endif %}
+                <input type="file" name="image" id="image" accept="image/*"
+                       class="block w-full text-sm text-gray-500
+                              file:mr-4 file:py-2 file:px-4
+                              file:rounded-full file:border-0
+                              file:text-sm file:font-semibold
+                              file:bg-indigo-50 file:text-indigo-700
+                              hover:file:bg-indigo-100">
+                <p class="text-sm text-gray-500">Supported formats: PNG, JPG, JPEG, GIF, WEBP (max 16MB)</p>
+                {% if not poll.image_path %}
+                <div id="image-preview" class="hidden mt-2">
+                    <img src="" alt="Preview" class="max-h-48 rounded-lg">
+                </div>
+                {% endif %}
             </div>
 
             <div class="bg-gray-50 rounded-xl p-6 space-y-6">
