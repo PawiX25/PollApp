@@ -75,6 +75,20 @@ class Poll(db.Model):
     password_hash = db.Column(db.String(200), nullable=True)
     multiple_votes = db.Column(db.Boolean, default=False)
     image_path = db.Column(db.String(200))
+    question_type = db.Column(db.String(20), default='mcq')
+    rating_scale = db.Column(db.Integer, default=5)
+    
+    @property
+    def is_mcq(self):
+        return self.question_type == 'mcq'
+    
+    @property
+    def is_rating(self):
+        return self.question_type == 'rating'
+    
+    @property
+    def is_text(self):
+        return self.question_type == 'text'
 
     def reset_votes(self):
         for option in self.options:
@@ -146,6 +160,8 @@ class Option(db.Model):
     text = db.Column(db.String(200), nullable=False)
     votes = db.Column(db.Integer, default=0)
     poll_id = db.Column(db.Integer, db.ForeignKey('poll.id'), nullable=False)
+    text_answers = db.relationship('TextAnswer', backref='option', lazy=True, cascade='all, delete-orphan')
+    rating_votes = db.relationship('RatingVote', backref='option', lazy=True, cascade='all, delete-orphan')
 
 class Vote(db.Model):
     id = db.Column(db.Integer, primary_key=True)
@@ -153,6 +169,20 @@ class Vote(db.Model):
     option_id = db.Column(db.Integer, db.ForeignKey('option.id'), nullable=False)
     timestamp = db.Column(db.DateTime, default=datetime.utcnow)
     session_id = db.Column(db.String(100), nullable=False)
+
+class TextAnswer(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    text = db.Column(db.Text, nullable=False)
+    option_id = db.Column(db.Integer, db.ForeignKey('option.id'), nullable=False)
+    session_id = db.Column(db.String(100), nullable=False)
+    timestamp = db.Column(db.DateTime, default=datetime.utcnow)
+
+class RatingVote(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    rating = db.Column(db.Integer, nullable=False)
+    option_id = db.Column(db.Integer, db.ForeignKey('option.id'), nullable=False)
+    session_id = db.Column(db.String(100), nullable=False)
+    timestamp = db.Column(db.DateTime, default=datetime.utcnow)
 
 with app.app_context():
     db.create_all()
@@ -214,21 +244,20 @@ def logout():
 def create():
     if request.method == 'POST':
         question = request.form['question'].strip()
-        options = [opt.strip() for opt in request.form.getlist('options') if opt.strip()]
+        question_type = request.form.get('question_type', 'mcq')
+        rating_scale = int(request.form.get('rating_scale', 5))
         expiration = request.form.get('expires_at')
         private = request.form.get('private') == 'on'
         password = request.form.get('password')
-        multiple_votes = request.form.get('multiple_votes') == 'true'
         start_date = request.form.get('start_date')
         
-        if len(question) < 5:
-            flash('Question must be at least 5 characters long', 'error')
-            return render_template('create.html')
-        
-        if len(options) < 2:
-            flash('You must provide at least 2 options', 'error')
-            return render_template('create.html')
-            
+        options = []
+        if question_type == 'mcq':
+            options = [opt.strip() for opt in request.form.getlist('options') if opt.strip()]
+            if len(options) < 2:
+                flash('You must provide at least 2 options for multiple choice questions', 'error')
+                return render_template('create.html')
+
         try:
             if expiration:
                 expires_at = datetime.fromisoformat(expiration).astimezone(timezone.utc)
@@ -256,22 +285,27 @@ def create():
                 start_date=start_date,
                 user_id=current_user.id,
                 private=private,
-                multiple_votes=multiple_votes,
-                image_path=image_path
+                multiple_votes=False,
+                image_path=image_path,
+                question_type=question_type,
+                rating_scale=rating_scale
             )
-            poll.set_password(password)
-            if private:
-                poll.access_token = poll.generate_access_token()
-            db.session.add(poll)
             
-            for option_text in options:
-                option = Option(text=option_text, poll=poll)
+            if question_type == 'mcq':
+                for option_text in options:
+                    option = Option(text=option_text, poll=poll)
+                    db.session.add(option)
+            else:
+                option = Option(text='Responses', poll=poll)
                 db.session.add(option)
-            
+
+            db.session.add(poll)
             db.session.commit()
             flash('Poll created successfully!', 'success')
             return redirect(url_for('index'))
+            
         except Exception as e:
+            print(f"Error creating poll: {str(e)}")
             db.session.rollback()
             flash('An error occurred while creating the poll', 'error')
             return render_template('create.html')
@@ -325,40 +359,52 @@ def vote(poll_id):
     if 'session_id' not in session:
         session['session_id'] = os.urandom(16).hex()
 
-    option_ids = request.form.getlist('options[]')
-    
-    if not option_ids:
-        flash('Please select at least one option to vote', 'error')
-        return redirect(url_for('index'))
-    
-    if not poll.multiple_votes and len(option_ids) > 1:
-        flash('This poll only allows voting for one option', 'error')
-        return redirect(url_for('index'))
-    
-    existing_vote = Vote.query.filter_by(
-        poll_id=poll_id,
-        session_id=session['session_id']
-    ).first()
-    
-    if existing_vote:
-        flash('You have already voted in this poll', 'error')
-        return redirect(url_for('index'))
-    
     try:
-        for option_id in option_ids:
-            option = Option.query.get_or_404(option_id)
-            if option.poll_id != poll_id:
-                raise ValueError("Invalid option for this poll")
-            option.votes += 1
+        if poll.is_mcq:
+            option_ids = request.form.getlist('options[]')
+    
+            if not option_ids:
+                flash('Please select at least one option to vote', 'error')
+                return redirect(url_for('index'))
             
-            vote = Vote(poll_id=poll_id, option_id=option_id, session_id=session['session_id'])
+            if not poll.multiple_votes and len(option_ids) > 1:
+                flash('This poll only allows voting for one option', 'error')
+                return redirect(url_for('index'))
+            
+            existing_vote = Vote.query.filter_by(
+                poll_id=poll_id,
+                session_id=session['session_id']
+            ).first()
+            
+            if existing_vote:
+                flash('You have already voted in this poll', 'error')
+                return redirect(url_for('index'))
+            
+            for option_id in option_ids:
+                option = Option.query.get_or_404(option_id)
+                if option.poll_id != poll_id:
+                    raise ValueError("Invalid option for this poll")
+                option.votes += 1
+                
+                vote = Vote(poll_id=poll_id, option_id=option_id, session_id=session['session_id'])
+                db.session.add(vote)
+        elif poll.is_rating:
+            rating = int(request.form.get('rating'))
+            option = poll.options[0]
+            vote = RatingVote(rating=rating, option=option, session_id=session['session_id'])
             db.session.add(vote)
+        elif poll.is_text:
+            text_answer = request.form.get('text_answer').strip()
+            if text_answer:
+                option = poll.options[0]
+                answer = TextAnswer(text=text_answer, option=option, session_id=session['session_id'])
+                db.session.add(answer)
         
         db.session.commit()
-        flash('Vote recorded successfully!', 'success')
+        flash('Response recorded successfully!', 'success')
     except Exception as e:
         db.session.rollback()
-        flash('An error occurred while recording your vote', 'error')
+        flash('An error occurred while recording your response', 'error')
     
     return redirect(url_for('index'))
 

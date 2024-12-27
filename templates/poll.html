@@ -25,28 +25,52 @@
         
         {% if not poll.is_expired %}
             <form action="{{ url_for('vote', poll_id=poll.id) }}" method="post" class="space-y-4" id="pollForm">
-                {% for option in poll.options %}
-                <label class="block p-4 hover:bg-indigo-50 rounded-xl transition-colors cursor-pointer">
-                    <div class="flex items-center space-x-3">
-                        {% if poll.multiple_votes %}
-                        <input type="checkbox" 
-                               name="options[]" 
-                               value="{{ option.id }}"
-                               class="w-5 h-5 text-indigo-600 border-gray-300 rounded focus:ring-indigo-500 focus:ring-offset-0">
-                        {% else %}
-                        <input type="radio" 
-                               name="options" 
-                               value="{{ option.id }}"
-                               required
-                               class="w-5 h-5 text-indigo-600 border-gray-300 focus:ring-indigo-500 focus:ring-offset-0">
-                        {% endif %}
-                        <div class="flex-grow">
-                            <span class="text-lg text-gray-900">{{ option.text }}</span>
-                            <div class="mt-1 text-sm text-gray-500">{{ option.votes }} votes</div>
+                {% if poll.is_mcq %}
+                    {% for option in poll.options %}
+                    <label class="block p-4 hover:bg-indigo-50 rounded-xl transition-colors cursor-pointer">
+                        <div class="flex items-center space-x-3">
+                            {% if poll.multiple_votes %}
+                            <input type="checkbox" 
+                                   name="options[]" 
+                                   value="{{ option.id }}"
+                                   class="w-5 h-5 text-indigo-600 border-gray-300 rounded focus:ring-indigo-500 focus:ring-offset-0">
+                            {% else %}
+                            <input type="radio" 
+                                   name="options" 
+                                   value="{{ option.id }}"
+                                   required
+                                   class="w-5 h-5 text-indigo-600 border-gray-300 focus:ring-indigo-500 focus:ring-offset-0">
+                            {% endif %}
+                            <div class="flex-grow">
+                                <span class="text-lg text-gray-900">{{ option.text }}</span>
+                                <div class="mt-1 text-sm text-gray-500">{{ option.votes }} votes</div>
+                            </div>
                         </div>
+                    </label>
+                    {% endfor %}
+                {% elif poll.is_rating %}
+                    <div class="flex flex-wrap justify-center gap-4 py-4">
+                        {% for i in range(1, poll.rating_scale + 1) %}
+                        <label class="rating-option cursor-pointer">
+                            <input type="radio" name="rating" value="{{ i }}" required class="peer hidden">
+                            <div class="w-16 h-16 flex items-center justify-center text-lg font-medium 
+                                      bg-gray-100 rounded-xl peer-checked:bg-indigo-600 peer-checked:text-white
+                                      hover:bg-indigo-500 hover:text-white transition-all transform hover:scale-110">
+                                {{ i }}
+                            </div>
+                        </label>
+                        {% endfor %}
                     </div>
-                </label>
-                {% endfor %}
+                    <p class="text-center text-sm text-gray-500 mb-4">Click on a number to rate</p>
+                {% elif poll.is_text %}
+                    <div class="space-y-4">
+                        <textarea name="text_answer" rows="4" required
+                                  placeholder="Enter your answer here..."
+                                  class="w-full rounded-xl border-gray-300 shadow-sm 
+                                         focus:border-indigo-500 focus:ring-indigo-500"></textarea>
+                        <p class="text-sm text-gray-500">Please provide your answer in the text box above</p>
+                    </div>
+                {% endif %}
 
                 {% if poll.multiple_votes %}
                 <p class="text-sm text-indigo-600 italic flex items-center">
@@ -63,7 +87,7 @@
                     <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
                     </svg>
-                    <span>Submit Vote{{ 's' if poll.multiple_votes else '' }}</span>
+                    <span>Submit Response</span>
                 </button>
             </form>
         {% else %}

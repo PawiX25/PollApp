@@ -18,45 +18,128 @@
         </div>
 
         <div class="grid md:grid-cols-2 gap-8">
-            <div class="bg-gray-50 rounded-xl p-6">
-                <canvas id="voteChart" class="w-full"></canvas>
-            </div>
-
-            <div class="space-y-6">
-                <div class="bg-indigo-50 rounded-xl p-6">
-                    <h3 class="text-lg font-semibold text-indigo-900 mb-4">Quick Stats</h3>
-                    <div class="grid grid-cols-2 gap-4">
-                        <div class="text-center">
-                            <div class="text-2xl font-bold text-indigo-600">{{ total_votes }}</div>
-                            <div class="text-sm text-gray-600">Total Votes</div>
-                        </div>
-                        <div class="text-center">
-                            <div class="text-2xl font-bold text-indigo-600">{{ poll.options|length }}</div>
-                            <div class="text-sm text-gray-600">Options</div>
-                        </div>
-                    </div>
+            {% if poll.is_mcq %}
+                <div class="bg-gray-50 rounded-xl p-6">
+                    <canvas id="voteChart" class="w-full"></canvas>
                 </div>
-
-                <div class="space-y-4">
-                    {% for option in poll.options %}
-                    <div class="bg-white rounded-lg border p-4">
-                        <div class="flex justify-between items-center mb-2">
-                            <span class="font-medium">{{ option.text }}</span>
-                            <span class="text-indigo-600 font-semibold">{{ option.votes }} votes</span>
+            {% elif poll.is_rating %}
+                <div class="bg-gray-50 rounded-xl p-6">
+                    <h3 class="text-lg font-semibold mb-4">Rating Distribution</h3>
+                    {% set total_ratings = poll.options[0].rating_votes|length %}
+                    {% if total_ratings > 0 %}
+                        {% set ratings = poll.options[0].rating_votes|map(attribute='rating')|list %}
+                        {% set avg_rating = (ratings|sum / total_ratings)|round(1) %}
+                        <div class="text-center mb-6">
+                            <div class="text-4xl font-bold text-indigo-600">{{ avg_rating }}</div>
+                            <div class="text-gray-600">Average Rating</div>
+                            <div class="text-sm text-gray-500">From {{ total_ratings }} responses</div>
                         </div>
-                        <div class="w-full bg-gray-200 rounded-full h-2.5">
-                            <div class="bg-indigo-600 h-2.5 rounded-full" 
-                                 style="width: {{ (option.votes / total_votes * 100) if total_votes > 0 else 0 }}%">
+                        <div class="space-y-3">
+                            {% for i in range(1, poll.rating_scale + 1) %}
+                            {% set count = ratings|select("==", i)|list|length %}
+                            {% set percentage = (count / total_ratings * 100)|round %}
+                            <div>
+                                <div class="flex justify-between text-sm text-gray-600 mb-1">
+                                    <span>{{ i }} star{{ 's' if i != 1 }}</span>
+                                    <span>{{ count }} vote{{ 's' if count != 1 }}</span>
+                                </div>
+                                <div class="h-2 bg-gray-200 rounded-full">
+                                    <div class="h-2 bg-indigo-600 rounded-full" style="width: {{ percentage }}%"></div>
+                                </div>
                             </div>
+                            {% endfor %}
                         </div>
-                        <div class="text-sm text-gray-500 mt-1">
-                            {{ "%.1f"|format(option.votes / total_votes * 100) if total_votes > 0 else 0 }}%
+                    {% else %}
+                        <p class="text-center text-gray-500">No ratings yet</p>
+                    {% endif %}
+                </div>
+            {% elif poll.is_text %}
+                <div class="bg-gray-50 rounded-xl p-6">
+                    <h3 class="text-lg font-semibold mb-4">Text Responses</h3>
+                    {% if poll.options[0].text_answers %}
+                        <div class="space-y-4 max-h-[600px] overflow-y-auto">
+                            {% for answer in poll.options[0].text_answers|sort(attribute='timestamp', reverse=true) %}
+                                <div class="bg-white p-4 rounded-lg shadow">
+                                    <p class="text-gray-700">{{ answer.text }}</p>
+                                    <p class="text-xs text-gray-500 mt-2">
+                                        Submitted {{ answer.timestamp.strftime('%Y-%m-%d %H:%M') }}
+                                    </p>
+                                </div>
+                            {% endfor %}
+                        </div>
+                    {% else %}
+                        <p class="text-center text-gray-500">No responses yet</p>
+                    {% endif %}
+                </div>
+            {% endif %}
+
+            <div class="bg-indigo-50 rounded-xl p-6">
+                <h3 class="text-lg font-semibold text-indigo-900 mb-4">Poll Statistics</h3>
+                <div class="grid grid-cols-2 gap-4">
+                    <div class="text-center">
+                        <div class="text-2xl font-bold text-indigo-600">
+                            {% if poll.is_mcq %}
+                                {{ total_votes }}
+                            {% elif poll.is_rating %}
+                                {{ poll.options[0].rating_votes|length }}
+                            {% else %}
+                                {{ poll.options[0].text_answers|length }}
+                            {% endif %}
+                        </div>
+                        <div class="text-sm text-gray-600">Total Responses</div>
+                    </div>
+                    <div class="text-center">
+                        <div class="text-2xl font-bold text-indigo-600">
+                            {% if poll.is_mcq %}
+                                {{ poll.options|length }}
+                            {% elif poll.is_rating %}
+                                {{ poll.rating_scale }}
+                            {% else %}
+                                -
+                            {% endif %}
+                        </div>
+                        <div class="text-sm text-gray-600">
+                            {% if poll.is_mcq %}Options
+                            {% elif poll.is_rating %}Scale
+                            {% else %}Text Response
+                            {% endif %}
                         </div>
                     </div>
-                    {% endfor %}
                 </div>
             </div>
         </div>
+
+        {% if poll.is_rating %}
+            <div class="bg-white rounded-lg p-6 shadow-md">
+                <h3 class="text-lg font-semibold mb-4">Rating Responses</h3>
+                {% set total_ratings = poll.options[0].rating_votes|length %}
+                {% if total_ratings > 0 %}
+                    {% set avg_rating = (poll.options[0].rating_votes|map(attribute='rating')|sum / total_ratings)|round(1) %}
+                    <div class="text-center">
+                        <div class="text-3xl font-bold text-indigo-600">{{ avg_rating }}/{{ poll.rating_scale }}</div>
+                        <div class="text-sm text-gray-500">Average rating from {{ total_ratings }} responses</div>
+                    </div>
+                {% else %}
+                    <p class="text-gray-500 text-center">No ratings yet</p>
+                {% endif %}
+            </div>
+        {% elif poll.is_text %}
+            <div class="bg-white rounded-lg p-6 shadow-md">
+                <h3 class="text-lg font-semibold mb-4">Text Responses</h3>
+                {% if poll.options[0].text_answers %}
+                    <div class="space-y-4">
+                        {% for answer in poll.options[0].text_answers %}
+                            <div class="bg-gray-50 p-4 rounded-lg">
+                                <p class="text-gray-700">{{ answer.text }}</p>
+                                <p class="text-sm text-gray-500 mt-2">Submitted {{ answer.timestamp.strftime('%Y-%m-%d %H:%M') }}</p>
+                            </div>
+                        {% endfor %}
+                    </div>
+                {% else %}
+                    <p class="text-gray-500 text-center">No responses yet</p>
+                {% endif %}
+            </div>
+        {% endif %}
 
         <div class="flex justify-between items-center mt-8 pt-6 border-t">
             <div class="flex items-center space-x-4">

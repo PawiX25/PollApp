@@ -29,39 +29,105 @@
             </div>
 
             <div class="space-y-4">
-                <div class="flex justify-between items-center">
-                    <label class="block text-lg font-semibold text-gray-900">Poll Options</label>
-                    <button type="button" id="addOption" 
-                            class="text-indigo-600 hover:text-indigo-800 flex items-center space-x-1">
-                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"/>
-                        </svg>
-                        <span>Add Option</span>
-                    </button>
-                </div>
-                <div id="optionsContainer" class="space-y-3">
-                    <div class="option-input group animate__animated animate__fadeIn">
-                        <div class="flex items-center space-x-2">
-                            <span class="text-gray-400 option-number">1.</span>
-                            <input type="text" name="options" required placeholder="Enter option..."
-                                   class="flex-1 rounded-lg border-gray-300 shadow-sm 
-                                          focus:border-indigo-500 focus:ring-indigo-500
-                                          group-hover:border-indigo-300">
+                <label class="block text-lg font-semibold text-gray-900">Question Type</label>
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <label class="relative flex cursor-pointer rounded-lg border bg-white p-4 shadow-sm focus:outline-none">
+                        <input type="radio" name="question_type" value="mcq" class="peer sr-only" checked 
+                               onchange="showQuestionOptions('mcq')">
+                        <div class="flex w-full items-center justify-between">
+                            <div>
+                                <p class="text-gray-900 font-medium">Multiple Choice</p>
+                                <p class="text-gray-500 text-sm">Choose from options</p>
+                            </div>
+                            <svg class="h-5 w-5 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                            </svg>
                         </div>
+                        <div class="absolute -inset-px rounded-lg border-2 pointer-events-none peer-checked:border-indigo-500"></div>
+                    </label>
+
+                    <label class="relative flex cursor-pointer rounded-lg border bg-white p-4 shadow-sm focus:outline-none">
+                        <input type="radio" name="question_type" value="rating" class="peer sr-only"
+                               onchange="showQuestionOptions('rating')">
+                        <div class="flex w-full items-center justify-between">
+                            <div>
+                                <p class="text-gray-900 font-medium">Rating Scale</p>
+                                <p class="text-gray-500 text-sm">Rate on a scale</p>
+                            </div>
+                            <svg class="h-5 w-5 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.519 4.674a1 1 0 00.95.69h4.915c.969 0 1.371 1.24.588 1.81l-3.976 2.888a1 1 0 00-.363 1.118l1.518 4.674c.3.922-.755 1.688-1.538 1.118l-3.976-2.888a1 1 0 00-1.176 0l-3.976 2.888c-.783.57-1.838-.197-1.538-1.118l1.518-4.674a1 1 0 00-.363-1.118l-3.976-2.888c-.784-.57-.38-1.81.588-1.81h4.914a1 1 0 00.951-.69l1.519-4.674z"/>
+                            </svg>
+                        </div>
+                        <div class="absolute -inset-px rounded-lg border-2 pointer-events-none peer-checked:border-indigo-500"></div>
+                    </label>
+
+                    <label class="relative flex cursor-pointer rounded-lg border bg-white p-4 shadow-sm focus:outline-none">
+                        <input type="radio" name="question_type" value="text" class="peer sr-only"
+                               onchange="showQuestionOptions('text')">
+                        <div class="flex w-full items-center justify-between">
+                            <div>
+                                <p class="text-gray-900 font-medium">Text Answer</p>
+                                <p class="text-gray-500 text-sm">Free form response</p>
+                            </div>
+                            <svg class="h-5 w-5 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/>
+                            </svg>
+                        </div>
+                        <div class="absolute -inset-px rounded-lg border-2 pointer-events-none peer-checked:border-indigo-500"></div>
+                    </label>
+                </div>
+            </div>
+
+            <div id="mcqOptions" class="question-options">
+                <div class="space-y-4">
+                    <div class="flex justify-between items-center">
+                        <label class="block text-lg font-semibold text-gray-900">Poll Options</label>
+                        <button type="button" id="addOption" 
+                                class="text-indigo-600 hover:text-indigo-800 flex items-center space-x-1">
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"/>
+                            </svg>
+                            <span>Add Option</span>
+                        </button>
                     </div>
-                    <div class="option-input group animate__animated animate__fadeIn">
-                        <div class="flex items-center space-x-2">
-                            <span class="text-gray-400 option-number">2.</span>
-                            <input type="text" name="options" required placeholder="Enter option..."
-                                   class="flex-1 rounded-lg border-gray-300 shadow-sm 
-                                          focus:border-indigo-500 focus:ring-indigo-500
-                                          group-hover:border-indigo-300">
+                    <div id="optionsContainer" class="space-y-3">
+                        <div class="option-input group animate__animated animate__fadeIn">
+                            <div class="flex items-center space-x-2">
+                                <span class="text-gray-400 option-number">1.</span>
+                                <input type="text" name="options" required placeholder="Enter option..."
+                                       class="flex-1 rounded-lg border-gray-300 shadow-sm 
+                                              focus:border-indigo-500 focus:ring-indigo-500
+                                              group-hover:border-indigo-300">
+                            </div>
+                        </div>
+                        <div class="option-input group animate__animated animate__fadeIn">
+                            <div class="flex items-center space-x-2">
+                                <span class="text-gray-400 option-number">2.</span>
+                                <input type="text" name="options" required placeholder="Enter option..."
+                                       class="flex-1 rounded-lg border-gray-300 shadow-sm 
+                                              focus:border-indigo-500 focus:ring-indigo-500
+                                              group-hover:border-indigo-300">
+                            </div>
                         </div>
                     </div>
                 </div>
             </div>
 
-            <div class="space-y-4">
+            <div id="ratingOptions" class="question-options hidden">
+                <div class="space-y-2">
+                    <label for="rating_scale" class="block text-lg font-semibold text-gray-900">Rating Scale</label>
+                    <select name="rating_scale" id="rating_scale" class="mt-1 block w-full rounded-lg border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500">
+                        <option value="5">1-5 Scale</option>
+                        <option value="10">1-10 Scale</option>
+                    </select>
+                </div>
+            </div>
+
+            <div id="textOptions" class="question-options hidden">
+                <p class="text-gray-500">Participants will be able to provide a free-form text answer.</p>
+            </div>
+
+            <div class="space-y-4 poll-type-section">
                 <label class="block text-lg font-semibold text-gray-900">Poll Type</label>
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <label class="relative flex cursor-pointer rounded-lg border bg-white p-4 shadow-sm focus:outline-none">
@@ -104,8 +170,117 @@
                         document.getElementById('multiple_votes').value = this.value === 'multiple';
                     });
                 });
-            </script>
 
+                function showQuestionOptions(type) {
+                    document.querySelectorAll('.question-options').forEach(el => {
+                        el.classList.add('hidden');
+                    });
+                    
+                    const selectedSection = document.getElementById(type + 'Options');
+                    if (selectedSection) {
+                        selectedSection.classList.remove('hidden');
+                    }
+                    
+                    const pollTypeSection = document.querySelector('.poll-type-section');
+                    if (pollTypeSection) {
+                        pollTypeSection.classList.toggle('hidden', type !== 'mcq');
+                    }
+                }
+
+                const initialType = document.querySelector('input[name="question_type"]:checked').value;
+                showQuestionOptions(initialType);
+
+                document.querySelectorAll('input[name="question_type"]').forEach(radio => {
+                    radio.addEventListener('change', (e) => {
+                        showQuestionOptions(e.target.value);
+                    });
+                });
+
+                document.addEventListener('DOMContentLoaded', function() {
+                    const optionsContainer = document.getElementById('optionsContainer');
+                    const addOptionBtn = document.getElementById('addOption');
+                    const maxOptions = 10;
+
+                    function updateOptionNumbers() {
+                        document.querySelectorAll('.option-number').forEach((span, index) => {
+                            span.textContent = `${index + 1}.`;
+                        });
+                    }
+
+                    function createOptionInput() {
+                        const optionCount = optionsContainer.children.length;
+                        if (optionCount >= maxOptions) {
+                            alert('Maximum 10 options allowed');
+                            return;
+                        }
+
+                        const div = document.createElement('div');
+                        div.className = 'option-input group animate__animated animate__fadeIn';
+                        div.innerHTML = `
+                            <div class="flex items-center space-x-2">
+                                <span class="text-gray-400 option-number">${optionCount + 1}.</span>
+                                <input type="text" name="options" placeholder="Enter option..."
+                                    class="flex-1 rounded-lg border-gray-300 shadow-sm 
+                                        focus:border-indigo-500 focus:ring-indigo-500
+                                        group-hover:border-indigo-300">
+                                <button type="button" class="text-red-500 hover:text-red-700 delete-option">
+                                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
+                                    </svg>
+                                </button>
+                            </div>
+                        `;
+
+                        optionsContainer.appendChild(div);
+                    }
+
+                    addOptionBtn.addEventListener('click', createOptionInput);
+
+                    optionsContainer.addEventListener('click', function(e) {
+                        if (e.target.closest('.delete-option')) {
+                            const optionInput = e.target.closest('.option-input');
+                            if (optionsContainer.children.length > 2) {
+                                optionInput.classList.remove('animate__fadeIn');
+                                optionInput.classList.add('animate__fadeOut');
+                                setTimeout(() => {
+                                    optionInput.remove();
+                                    updateOptionNumbers();
+                                }, 500);
+                            } else {
+                                alert('Minimum 2 options required');
+                            }
+                        }
+                    });
+
+                    document.getElementById('image').addEventListener('change', function(e) {
+                        const preview = document.getElementById('image-preview');
+                        const file = e.target.files[0];
+                        
+                        if (file) {
+                            const reader = new FileReader();
+                            reader.onload = function(e) {
+                                preview.querySelector('img').src = e.target.result;
+                                preview.classList.remove('hidden');
+                            }
+                            reader.readAsDataURL(file);
+                        } else {
+                            preview.classList.add('hidden');
+                        }
+                    });
+
+                    document.getElementById('pollForm').addEventListener('submit', function(e) {
+                        const options = Array.from(document.getElementsByName('options'))
+                                            .map(input => input.value.trim())
+                                            .filter(value => value.length > 0);
+
+                        if (new Set(options).size !== options.length) {
+                            e.preventDefault();
+                            showToast('All options must be unique', 'error');
+                            return;
+                        }
+                    });
+                });
+            </script>
             <div class="space-y-2">
                 <label for="image" class="block text-lg font-semibold text-gray-900">Poll Image (optional)</label>
                 <input type="file" name="image" id="image" accept="image/*"
@@ -205,86 +380,53 @@
 
 <script>
 document.addEventListener('DOMContentLoaded', function() {
-    const optionsContainer = document.getElementById('optionsContainer');
-    const addOptionBtn = document.getElementById('addOption');
-    const maxOptions = 10;
+    document.querySelector('.poll-type-section').classList.add('hidden');
 
-    function updateOptionNumbers() {
-        document.querySelectorAll('.option-number').forEach((span, index) => {
-            span.textContent = `${index + 1}.`;
+    function showQuestionOptions(type) {
+        document.querySelectorAll('.question-options').forEach(el => el.classList.add('hidden'));
+        
+        const selectedSection = document.getElementById(type + 'Options');
+        if (selectedSection) {
+            selectedSection.classList.remove('hidden');
+        }
+        
+        const pollTypeSection = document.querySelector('.poll-type-section');
+        pollTypeSection.classList.toggle('hidden', type !== 'mcq');
+        
+        const optionInputs = document.querySelectorAll('input[name="options"]');
+        optionInputs.forEach(input => {
+            input.required = (type === 'mcq');
         });
     }
 
-    function createOptionInput() {
-        const optionCount = optionsContainer.children.length;
-        if (optionCount >= maxOptions) {
-            alert('Maximum 10 options allowed');
-            return;
-        }
+    const initialType = document.querySelector('input[name="question_type"]:checked').value;
+    showQuestionOptions(initialType);
 
-        const div = document.createElement('div');
-        div.className = 'option-input group animate__animated animate__fadeIn';
-        div.innerHTML = `
-            <div class="flex items-center space-x-2">
-                <span class="text-gray-400 option-number">${optionCount + 1}.</span>
-                <input type="text" name="options" placeholder="Enter option..."
-                       class="flex-1 rounded-lg border-gray-300 shadow-sm 
-                              focus:border-indigo-500 focus:ring-indigo-500
-                              group-hover:border-indigo-300">
-                <button type="button" class="text-red-500 hover:text-red-700 delete-option">
-                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
-                    </svg>
-                </button>
-            </div>
-        `;
-
-        optionsContainer.appendChild(div);
-    }
-
-    addOptionBtn.addEventListener('click', createOptionInput);
-
-    optionsContainer.addEventListener('click', function(e) {
-        if (e.target.closest('.delete-option')) {
-            const optionInput = e.target.closest('.option-input');
-            if (optionsContainer.children.length > 2) {
-                optionInput.classList.remove('animate__fadeIn');
-                optionInput.classList.add('animate__fadeOut');
-                setTimeout(() => {
-                    optionInput.remove();
-                    updateOptionNumbers();
-                }, 500);
-            } else {
-                alert('Minimum 2 options required');
-            }
-        }
-    });
-
-    document.getElementById('image').addEventListener('change', function(e) {
-        const preview = document.getElementById('image-preview');
-        const file = e.target.files[0];
-        
-        if (file) {
-            const reader = new FileReader();
-            reader.onload = function(e) {
-                preview.querySelector('img').src = e.target.result;
-                preview.classList.remove('hidden');
-            }
-            reader.readAsDataURL(file);
-        } else {
-            preview.classList.add('hidden');
-        }
+    document.querySelectorAll('input[name="question_type"]').forEach(radio => {
+        radio.addEventListener('change', (e) => {
+            showQuestionOptions(e.target.value);
+        });
     });
 
     document.getElementById('pollForm').addEventListener('submit', function(e) {
-        const options = Array.from(document.getElementsByName('options'))
-                            .map(input => input.value.trim())
-                            .filter(value => value.length > 0);
+        const questionType = document.querySelector('input[name="question_type"]:checked').value;
+        
+        if (questionType === 'mcq') {
+            const options = Array.from(document.getElementsByName('options'))
+                                .map(input => input.value.trim())
+                                .filter(value => value.length > 0);
 
-        if (new Set(options).size !== options.length) {
-            e.preventDefault();
-            showToast('All options must be unique', 'error');
-            return;
+            if (options.length < 2) {
+                e.preventDefault();
+                showToast('Please provide at least 2 options for multiple choice questions', 'error');
+                return;
+            }
+
+            if (new Set(options).size !== options.length) {
+                e.preventDefault();
+                showToast('All options must be unique', 'error');
+                return;
+            }
         }
     });
 });

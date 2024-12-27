@@ -45,15 +45,33 @@
             {% for poll in user_polls %}
             <div class="border rounded-lg p-4 hover:shadow-md transition">
                 <div class="flex justify-between items-start mb-3">
-                    <h3 class="font-medium text-gray-900">{{ poll.question }}</h3>
+                    <div>
+                        <h3 class="font-medium text-gray-900">{{ poll.question }}</h3>
+                        <div class="text-sm text-gray-500">
+                            Type: 
+                            {% if poll.is_mcq %}Multiple Choice
+                            {% elif poll.is_rating %}Rating Scale
+                            {% else %}Text Response{% endif %}
+                        </div>
+                    </div>
                     <span class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium 
-                        {% if poll.is_expired %}bg-red-100 text-red-800{% else %}bg-emerald-100 text-emerald-800{% endif %}">
+                        {% if poll.is_expired %}bg-red-100 text-red-800
+                        {% else %}bg-emerald-100 text-emerald-800{% endif %}">
                         {% if poll.is_expired %}Expired{% else %}Active{% endif %}
                     </span>
                 </div>
+                
                 <div class="text-sm text-gray-500 mb-3">
-                    Created: {{ poll.created_at.strftime('%Y-%m-%d %H:%M') }}
+                    Responses: 
+                    {% if poll.is_mcq %}
+                        {{ poll.options|map(attribute='votes')|sum }}
+                    {% elif poll.is_rating %}
+                        {{ poll.options[0].rating_votes|length }}
+                    {% else %}
+                        {{ poll.options[0].text_answers|length }}
+                    {% endif %}
                 </div>
+                
                 <div class="flex space-x-2">
                     <a href="{{ url_for('poll_details', poll_id=poll.id) }}" 
                        class="flex-1 text-center bg-indigo-50 text-indigo-600 px-3 py-1 rounded hover:bg-indigo-100">

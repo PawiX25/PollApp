@@ -42,19 +42,42 @@
         </div>
 
         <div class="space-y-4">
-            {% for option in poll.options %}
-            <div class="bg-gray-50 rounded-lg p-3">
-                <div class="flex justify-between items-center mb-1">
-                    <span class="text-gray-700">{{ option.text }}</span>
-                    <span class="text-indigo-600 font-medium">{{ option.votes }} votes</span>
-                </div>
-                <div class="w-full bg-gray-200 rounded-full h-1.5">
-                    <div class="bg-indigo-600 h-1.5 rounded-full" 
-                         style="width: {{ (option.votes / poll.options|map(attribute='votes')|sum * 100) if poll.options|map(attribute='votes')|sum > 0 else 0 }}%">
+            {% if poll.is_mcq %}
+                {% for option in poll.options %}
+                <div class="bg-gray-50 rounded-lg p-3">
+                    <div class="flex justify-between items-center mb-1">
+                        <span class="text-gray-700">{{ option.text }}</span>
+                        <span class="text-indigo-600 font-medium">{{ option.votes }} votes</span>
+                    </div>
+                    <div class="w-full bg-gray-200 rounded-full h-1.5">
+                        <div class="bg-indigo-600 h-1.5 rounded-full" 
+                             style="width: {{ (option.votes / poll.options|map(attribute='votes')|sum * 100) if poll.options|map(attribute='votes')|sum > 0 else 0 }}%">
+                        </div>
                     </div>
                 </div>
-            </div>
-            {% endfor %}
+                {% endfor %}
+            {% elif poll.is_rating %}
+                <div class="bg-gray-50 rounded-lg p-4">
+                    {% set total_ratings = poll.options[0].rating_votes|length %}
+                    {% if total_ratings > 0 %}
+                        {% set avg_rating = (poll.options[0].rating_votes|map(attribute='rating')|sum / total_ratings)|round(1) %}
+                        <div class="text-center">
+                            <div class="text-2xl font-bold text-indigo-600">{{ avg_rating }}/{{ poll.rating_scale }}</div>
+                            <div class="text-sm text-gray-600">Average from {{ total_ratings }} ratings</div>
+                        </div>
+                    {% else %}
+                        <p class="text-center text-gray-500">No ratings yet</p>
+                    {% endif %}
+                </div>
+            {% elif poll.is_text %}
+                <div class="bg-gray-50 rounded-lg p-4">
+                    {% set total_responses = poll.options[0].text_answers|length %}
+                    <div class="text-center">
+                        <div class="text-2xl font-bold text-indigo-600">{{ total_responses }}</div>
+                        <div class="text-sm text-gray-600">Text Responses</div>
+                    </div>
+                </div>
+            {% endif %}
         </div>
 
         <div class="flex flex-col space-y-2 mt-4 pt-4 border-t">

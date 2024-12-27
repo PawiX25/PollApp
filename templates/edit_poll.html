@@ -185,6 +185,31 @@
                 </div>
             </div>
 
+            <div class="space-y-4">
+                <label class="block text-lg font-semibold text-gray-900">Question Type</label>
+                <div class="bg-gray-50 rounded-lg p-4">
+                    <p class="font-medium text-gray-700">
+                        {% if poll.is_mcq %}Multiple Choice Question
+                        {% elif poll.is_rating %}Rating Scale (1-{{ poll.rating_scale }})
+                        {% else %}Text Response{% endif %}
+                    </p>
+                    <p class="text-sm text-gray-500 mt-1">Question type cannot be changed after creation</p>
+                </div>
+            </div>
+
+            {% if poll.is_mcq %}
+            {% elif poll.is_rating %}
+                <div class="space-y-2">
+                    <label class="block text-lg font-semibold text-gray-900">Rating Scale</label>
+                    <p class="text-gray-500">Scale of 1-{{ poll.rating_scale }}</p>
+                </div>
+            {% else %}
+                <div class="space-y-2">
+                    <label class="block text-lg font-semibold text-gray-900">Text Response Settings</label>
+                    <p class="text-gray-500">Participants can provide free-form text answers</p>
+                </div>
+            {% endif %}
+
             <div class="flex justify-between pt-6">
                 <a href="{{ url_for('index') }}" 
                    class="text-gray-600 hover:text-gray-800">Cancel</a>
