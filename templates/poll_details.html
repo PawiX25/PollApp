@@ -8,8 +8,12 @@
         <div class="flex justify-between items-start mb-6">
             <h1 class="text-3xl font-bold text-gray-900">{{ poll.question }}</h1>
             <span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium 
-                {% if poll.is_expired %}bg-red-100 text-red-800{% else %}bg-emerald-100 text-emerald-800{% endif %}">
-                {% if poll.is_expired %}Expired{% else %}Active{% endif %}
+                {% if poll.active_state == 'scheduled' %}bg-yellow-100 text-yellow-800
+                {% elif poll.active_state == 'expired' %}bg-red-100 text-red-800
+                {% else %}bg-emerald-100 text-emerald-800{% endif %}">
+                {% if poll.active_state == 'scheduled' %}Scheduled
+                {% elif poll.active_state == 'expired' %}Expired
+                {% else %}Active{% endif %}
             </span>
         </div>
 

@@ -124,17 +124,33 @@
             <div class="bg-gray-50 rounded-xl p-6 space-y-6">
                 <h3 class="text-lg font-semibold text-gray-900">Advanced Settings</h3>
                 
-                <div class="space-y-2">
-                    <label for="expires_at" class="flex items-center space-x-2 text-gray-700">
-                        <svg class="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
-                                  d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
-                        </svg>
-                        <span>Poll Expiration (optional)</span>
-                    </label>
-                    <input type="datetime-local" name="expires_at" id="expires_at"
-                           class="w-full rounded-lg border-gray-300 shadow-sm 
-                                  focus:border-indigo-500 focus:ring-indigo-500">
+                <div class="space-y-4">
+                    <div class="space-y-2">
+                        <label for="start_date" class="flex items-center space-x-2 text-gray-700">
+                            <svg class="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
+                                      d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/>
+                            </svg>
+                            <span>Poll Start Date (optional)</span>
+                        </label>
+                        <input type="datetime-local" name="start_date" id="start_date"
+                               class="w-full rounded-lg border-gray-300 shadow-sm 
+                                      focus:border-indigo-500 focus:ring-indigo-500">
+                        <p class="text-sm text-gray-500">If set, the poll will only be accessible after this date</p>
+                    </div>
+
+                    <div class="space-y-2">
+                        <label for="expires_at" class="flex items-center space-x-2 text-gray-700">
+                            <svg class="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
+                                      d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                            </svg>
+                            <span>Poll Expiration (optional)</span>
+                        </label>
+                        <input type="datetime-local" name="expires_at" id="expires_at"
+                               class="w-full rounded-lg border-gray-300 shadow-sm 
+                                      focus:border-indigo-500 focus:ring-indigo-500">
+                    </div>
                 </div>
 
                 <div class="space-y-4">

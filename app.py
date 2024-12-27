@@ -67,6 +67,7 @@ class Poll(db.Model):
     question = db.Column(db.String(200), nullable=False)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     expires_at = db.Column(db.DateTime, nullable=True)
+    start_date = db.Column(db.DateTime, nullable=True)
     options = db.relationship('Option', backref='poll', lazy=True, cascade='all, delete-orphan')
     user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
     private = db.Column(db.Boolean, default=False)
@@ -121,6 +122,24 @@ class Poll(db.Model):
                 self.image_path = None
             except OSError:
                 pass
+
+    @property
+    def active_state(self):
+        now = datetime.now(timezone.utc)
+        
+        if self.start_date and self.start_date.replace(tzinfo=timezone.utc) > now:
+            return 'scheduled'
+        elif self.is_expired:
+            return 'expired'
+        else:
+            return 'active'
+
+    @property
+    def is_active(self):
+        now = datetime.now(timezone.utc)
+        if self.start_date and self.start_date.replace(tzinfo=timezone.utc) > now:
+            return False
+        return not self.is_expired
 
 class Option(db.Model):
     id = db.Column(db.Integer, primary_key=True)
@@ -200,6 +219,7 @@ def create():
         private = request.form.get('private') == 'on'
         password = request.form.get('password')
         multiple_votes = request.form.get('multiple_votes') == 'true'
+        start_date = request.form.get('start_date')
         
         if len(question) < 5:
             flash('Question must be at least 5 characters long', 'error')
@@ -215,6 +235,11 @@ def create():
             else:
                 expires_at = None
 
+            if start_date:
+                start_date = datetime.fromisoformat(start_date).astimezone(timezone.utc)
+            else:
+                start_date = None
+
             image = request.files.get('image')
             image_path = None
             if image and allowed_file(image.filename):
@@ -228,6 +253,7 @@ def create():
                 question=question, 
                 slug=Poll().generate_slug(),
                 expires_at=expires_at,
+                start_date=start_date,
                 user_id=current_user.id,
                 private=private,
                 multiple_votes=multiple_votes,
@@ -339,6 +365,14 @@ def vote(poll_id):
 @app.route('/poll/<string:slug>')
 def view_poll(slug):
     poll = Poll.query.filter_by(slug=slug).first_or_404()
+    
+    if not poll.is_active:
+        if poll.active_state == 'scheduled':
+            flash('This poll has not started yet.', 'error')
+        else:
+            flash('This poll has expired.', 'error')
+        return redirect(url_for('index'))
+    
     token = request.args.get('token')
     
     if poll.private:
