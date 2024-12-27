@@ -258,6 +258,11 @@ def create():
                 flash('You must provide at least 2 options for multiple choice questions', 'error')
                 return render_template('create.html')
 
+        multiple_votes = (
+            question_type == 'mcq' and 
+            request.form.get('selection_type') == 'multiple'
+        )
+
         try:
             if expiration:
                 expires_at = datetime.fromisoformat(expiration).astimezone(timezone.utc)
@@ -285,7 +290,7 @@ def create():
                 start_date=start_date,
                 user_id=current_user.id,
                 private=private,
-                multiple_votes=False,
+                multiple_votes=multiple_votes,
                 image_path=image_path,
                 question_type=question_type,
                 rating_scale=rating_scale
@@ -361,11 +366,15 @@ def vote(poll_id):
 
     try:
         if poll.is_mcq:
-            option_ids = request.form.getlist('options[]')
-    
+            if poll.multiple_votes:
+                option_ids = request.form.getlist('options[]')
+            else:
+                option_id = request.form.get('options')
+                option_ids = [option_id] if option_id else []
+                
             if not option_ids:
-                flash('Please select at least one option to vote', 'error')
-                return redirect(url_for('index'))
+                flash('Please select an option', 'error')
+                return redirect(url_for('poll', slug=poll.slug))
             
             if not poll.multiple_votes and len(option_ids) > 1:
                 flash('This poll only allows voting for one option', 'error')

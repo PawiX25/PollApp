@@ -29,7 +29,7 @@
             </div>
 
             <div class="space-y-4">
-                <label class="block text-lg font-semibold text-gray-900">Question Type</label>
+                <label class="block text-lg font-semibold text-gray-900">Response Type</label>
                 <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
                     <label class="relative flex cursor-pointer rounded-lg border bg-white p-4 shadow-sm focus:outline-none">
                         <input type="radio" name="question_type" value="mcq" class="peer sr-only" checked 
@@ -37,7 +37,7 @@
                         <div class="flex w-full items-center justify-between">
                             <div>
                                 <p class="text-gray-900 font-medium">Multiple Choice</p>
-                                <p class="text-gray-500 text-sm">Choose from options</p>
+                                <p class="text-gray-500 text-sm">Create options to choose from</p>
                             </div>
                             <svg class="h-5 w-5 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
@@ -78,7 +78,7 @@
                 </div>
             </div>
 
-            <div id="mcqOptions" class="question-options">
+            <div id="mcqOptions" class="question-options space-y-6">
                 <div class="space-y-4">
                     <div class="flex justify-between items-center">
                         <label class="block text-lg font-semibold text-gray-900">Poll Options</label>
@@ -111,6 +111,39 @@
                         </div>
                     </div>
                 </div>
+
+                <div class="border-t pt-6">
+                    <label class="block text-lg font-semibold text-gray-900 mb-4">Selection Type</label>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <label class="relative flex cursor-pointer rounded-lg border bg-white p-4 shadow-sm focus:outline-none">
+                            <input type="radio" name="selection_type" value="single" class="peer sr-only" checked>
+                            <div class="flex w-full items-center justify-between">
+                                <div>
+                                    <p class="text-gray-900 font-medium">Single Choice</p>
+                                    <p class="text-gray-500 text-sm">One option only</p>
+                                </div>
+                                <svg class="h-5 w-5 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                                </svg>
+                            </div>
+                            <div class="absolute -inset-px rounded-lg border-2 pointer-events-none peer-checked:border-indigo-500"></div>
+                        </label>
+
+                        <label class="relative flex cursor-pointer rounded-lg border bg-white p-4 shadow-sm focus:outline-none">
+                            <input type="radio" name="selection_type" value="multiple" class="peer sr-only">
+                            <div class="flex w-full items-center justify-between">
+                                <div>
+                                    <p class="text-gray-900 font-medium">Multiple Choice</p>
+                                    <p class="text-gray-500 text-sm">Multiple options allowed</p>
+                                </div>
+                                <svg class="h-5 w-5 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                                </svg>
+                            </div>
+                            <div class="absolute -inset-px rounded-lg border-2 pointer-events-none peer-checked:border-indigo-500"></div>
+                        </label>
+                    </div>
+                </div>
             </div>
 
             <div id="ratingOptions" class="question-options hidden">
@@ -125,41 +158,6 @@
 
             <div id="textOptions" class="question-options hidden">
                 <p class="text-gray-500">Participants will be able to provide a free-form text answer.</p>
-            </div>
-
-            <div class="space-y-4 poll-type-section">
-                <label class="block text-lg font-semibold text-gray-900">Poll Type</label>
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <label class="relative flex cursor-pointer rounded-lg border bg-white p-4 shadow-sm focus:outline-none">
-                        <input type="radio" name="poll_type" value="single" class="peer sr-only" checked 
-                               onchange="document.getElementById('multiple_votes').value='false'">
-                        <div class="flex w-full items-center justify-between">
-                            <div>
-                                <p class="text-gray-900 font-medium">Single Choice</p>
-                                <p class="text-gray-500 text-sm">Participants can select one option</p>
-                            </div>
-                            <svg class="h-5 w-5 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
-                            </svg>
-                        </div>
-                        <div class="absolute -inset-px rounded-lg border-2 pointer-events-none peer-checked:border-indigo-500"></div>
-                    </label>
-
-                    <label class="relative flex cursor-pointer rounded-lg border bg-white p-4 shadow-sm focus:outline-none">
-                        <input type="radio" name="poll_type" value="multiple" class="peer sr-only"
-                               onchange="document.getElementById('multiple_votes').value='true'">
-                        <div class="flex w-full items-center justify-between">
-                            <div>
-                                <p class="text-gray-900 font-medium">Multiple Choice</p>
-                                <p class="text-gray-500 text-sm">Participants can select multiple options</p>
-                            </div>
-                            <svg class="h-5 w-5 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
-                            </svg>
-                        </div>
-                        <div class="absolute -inset-px rounded-lg border-2 pointer-events-none peer-checked:border-indigo-500"></div>
-                    </label>
-                </div>
             </div>
 
             <input type="hidden" name="multiple_votes" id="multiple_votes" value="false">
@@ -405,6 +403,12 @@ document.addEventListener('DOMContentLoaded', function() {
     document.querySelectorAll('input[name="question_type"]').forEach(radio => {
         radio.addEventListener('change', (e) => {
             showQuestionOptions(e.target.value);
+        });
+    });
+
+    document.querySelectorAll('input[name="selection_type"]').forEach(radio => {
+        radio.addEventListener('change', function() {
+            document.getElementById('multiple_votes').value = this.value === 'multiple';
         });
     });
 
