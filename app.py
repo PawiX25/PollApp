@@ -800,7 +800,7 @@ def preview_poll():
 @app.route('/survey/<string:slug>')
 def view_survey(slug):
     survey = Survey.query.filter_by(slug=slug).first_or_404()
-     questions = sorted(survey.questions, key=lambda x: x.order)
+    questions = sorted(survey.questions, key=lambda x: x.order)
     return render_template('survey.html', survey=survey, questions=questions)
 
 @app.route('/survey/<string:slug>/submit', methods=['POST'])
