@@ -363,14 +363,25 @@
                     </svg>
                     <span>Cancel</span>
                 </a>
-                <button type="submit" 
-                        class="gradient-bg text-white px-8 py-3 rounded-xl hover-scale shadow-lg
-                               flex items-center space-x-2">
-                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
-                    </svg>
-                    <span>Create Poll</span>
-                </button>
+                <div class="flex space-x-4">
+                    <button type="submit" formaction="{{ url_for('preview_poll') }}" formtarget="_blank"
+                            class="bg-indigo-50 text-indigo-600 px-6 py-3 rounded-xl hover:bg-indigo-100
+                                   flex items-center space-x-2">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/>
+                        </svg>
+                        <span>Preview</span>
+                    </button>
+                    <button type="submit" 
+                            class="gradient-bg text-white px-8 py-3 rounded-xl hover-scale shadow-lg
+                                   flex items-center space-x-2">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
+                        </svg>
+                        <span>Create Poll</span>
+                    </button>
+                </div>
             </div>
         </form>
     </div>

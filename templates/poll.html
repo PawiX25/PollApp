@@ -1,8 +1,23 @@
 {% extends "base.html" %}
 
-{% block title %}{{ poll.question }} - Poll{% endblock %}
+{% block title %}{% if preview_mode %}Preview: {% endif %}{{ poll.question }} - Poll{% endblock %}
 
 {% block content %}
+{% if preview_mode %}
+<div class="bg-indigo-600 text-white px-6 py-3 mb-8 rounded-xl shadow-lg flex items-center justify-between">
+    <div class="flex items-center space-x-3">
+        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/>
+        </svg>
+        <span class="font-medium">Preview Mode - This is how your poll will look to participants</span>
+    </div>
+    <button onclick="window.close()" class="text-white hover:text-indigo-100">
+        Close Preview
+    </button>
+</div>
+{% endif %}
+
 <div class="max-w-3xl mx-auto">
     <div class="bg-white shadow-xl rounded-2xl p-8">
         {% if poll.image_path %}
@@ -23,7 +38,7 @@
         <p class="text-sm text-gray-500 mb-4">You can select multiple options in this poll.</p>
         {% endif %}
         
-        {% if not poll.is_expired %}
+        {% if not poll.is_expired and not preview_mode %}
             <form action="{{ url_for('vote', poll_id=poll.id) }}" method="post" class="space-y-4" id="pollForm">
                 {% if poll.is_mcq %}
                     {% for option in poll.options %}
@@ -90,6 +105,66 @@
                     <span>Submit Response</span>
                 </button>
             </form>
+        {% elif preview_mode %}
+            <form class="space-y-4 opacity-75">
+                {% if poll.is_mcq %}
+                    {% for option in poll.options %}
+                    <label class="block p-4 bg-gray-50 rounded-xl cursor-not-allowed">
+                        <div class="flex items-center space-x-3">
+                            {% if poll.multiple_votes %}
+                            <input type="checkbox" disabled
+                                   class="w-5 h-5 text-gray-400 border-gray-300 rounded cursor-not-allowed">
+                            {% else %}
+                            <input type="radio" disabled
+                                   class="w-5 h-5 text-gray-400 border-gray-300 cursor-not-allowed">
+                            {% endif %}
+                            <div class="flex-grow">
+                                <span class="text-lg text-gray-700">{{ option.text }}</span>
+                                <div class="mt-1 text-sm text-gray-500">0 votes</div>
+                            </div>
+                        </div>
+                    </label>
+                    {% endfor %}
+                {% elif poll.is_rating %}
+                    <div class="flex flex-wrap justify-center gap-4 py-4">
+                        {% for i in range(1, poll.rating_scale + 1) %}
+                        <div class="w-16 h-16 flex items-center justify-center text-lg font-medium 
+                                  bg-gray-100 rounded-xl text-gray-400 cursor-not-allowed">
+                            {{ i }}
+                        </div>
+                        {% endfor %}
+                    </div>
+                    <p class="text-center text-sm text-gray-500 mb-4">Rating options will be clickable here</p>
+                {% elif poll.is_text %}
+                    <div class="space-y-4">
+                        <textarea rows="4" disabled placeholder="Participants will be able to enter text here..."
+                                  class="w-full rounded-xl border-gray-300 shadow-sm bg-gray-50 
+                                         cursor-not-allowed text-gray-400"></textarea>
+                        <p class="text-sm text-gray-500">Text responses will be collected here</p>
+                    </div>
+                {% endif %}
+
+                {% if poll.multiple_votes %}
+                <p class="text-sm text-gray-500 italic flex items-center">
+                    <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                    </svg>
+                    Multiple options can be selected
+                </p>
+                {% endif %}
+
+                <button type="button" disabled
+                        class="w-full bg-gray-200 text-gray-500 rounded-xl px-6 py-4 text-lg font-medium 
+                               flex items-center justify-center space-x-2 cursor-not-allowed">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
+                    </svg>
+                    <span>Submit Response</span>
+                </button>
+            </form>
+            <div class="text-center p-4 mt-4 bg-indigo-50 rounded-lg text-indigo-700">
+                <p>This is a preview - voting is disabled</p>
+            </div>
         {% else %}
             <div class="text-center p-6 bg-gray-50 rounded-lg">
                 <p class="text-gray-600">This poll has expired</p>

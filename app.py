@@ -640,5 +640,67 @@ def download_pdf(poll):
         download_name=f'poll_results_{poll.id}.pdf'
     )
 
+def create_preview_poll(form_data):
+    """Creates a temporary poll object for preview without saving to database"""
+    question = form_data['question'].strip()
+    question_type = form_data.get('question_type', 'mcq')
+    rating_scale = int(form_data.get('rating_scale', 5))
+    multiple_votes = (
+        question_type == 'mcq' and 
+        form_data.get('selection_type') == 'multiple'
+    )
+    
+    poll = Poll(
+        question=question,
+        slug='preview',
+        user_id=current_user.id if current_user.is_authenticated else None,
+        private=form_data.get('private') == 'on',
+        multiple_votes=multiple_votes,
+        question_type=question_type,
+        rating_scale=rating_scale
+    )
+    
+    if question_type == 'mcq':
+        options = [opt.strip() for opt in form_data.getlist('options') if opt.strip()]
+        for option_text in options:
+            option = Option(text=option_text, poll=poll)
+            poll.options.append(option)
+    else:
+        option = Option(text='Responses', poll=poll)
+        poll.options.append(option)
+    
+    image = request.files.get('image')
+    if image and allowed_file(image.filename):
+        filename = generate_image_filename(image.filename)
+        upload_path = Path(app.root_path) / 'static' / 'uploads' / 'preview'
+        upload_path.mkdir(exist_ok=True)
+        image.save(upload_path / filename)
+        poll.image_path = f'uploads/preview/{filename}'
+    
+    return poll
+
+@app.route('/preview', methods=['POST'])
+def preview_poll():
+    try:
+        poll = create_preview_poll(request.form)
+        if not poll:
+            flash('Invalid poll data', 'error')
+            return redirect(url_for('create'))
+        
+        session['preview_poll'] = {
+            'question': poll.question,
+            'question_type': poll.question_type,
+            'rating_scale': poll.rating_scale,
+            'multiple_votes': poll.multiple_votes,
+            'options': [opt.text for opt in poll.options],
+            'image_path': poll.image_path
+        }
+        
+        return render_template('poll.html', poll=poll, preview_mode=True)
+        
+    except Exception as e:
+        flash('An error occurred while generating preview', 'error')
+        return redirect(url_for('create'))
+
 if __name__ == '__main__':
     app.run()
