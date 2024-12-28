@@ -1049,5 +1049,75 @@ def delete_survey(survey_id):
     
     return redirect(url_for('profile'))
 
+@app.route('/survey/<int:survey_id>/edit', methods=['GET', 'POST'])
+@login_required
+def edit_survey(survey_id):
+    survey = Survey.query.get_or_404(survey_id)
+    if survey.user_id != current_user.id:
+        flash('You are not authorized to edit this survey', 'error')
+        return redirect(url_for('index'))
+    
+    if request.method == 'POST':
+        title = request.form['title'].strip()
+        description = request.form.get('description', '').strip()
+        expires_at = request.form.get('expires_at')
+        private = request.form.get('private') == 'on'
+        password = request.form.get('password')
+        
+        try:
+            if expires_at:
+                expires_at = datetime.fromisoformat(expires_at).astimezone(timezone.utc)
+            else:
+                expires_at = None
+
+            survey.title = title
+            survey.description = description
+            survey.expires_at = expires_at
+            survey.private = private
+            
+            if password:
+                survey.password_hash = generate_password_hash(password)
+            
+            if private and not survey.access_token:
+                survey.access_token = survey.generate_access_token()
+
+            db.session.commit()
+            flash('Survey updated successfully!', 'success')
+            return redirect(url_for('survey_details', survey_id=survey.id))
+            
+        except Exception as e:
+            db.session.rollback()
+            flash('An error occurred while updating the survey', 'error')
+            return render_template('edit_survey.html', survey=survey)
+    
+    return render_template('edit_survey.html', survey=survey)
+
+@app.route('/survey/<int:survey_id>/reset', methods=['POST'])
+@login_required
+def reset_survey(survey_id):
+    survey = Survey.query.get_or_404(survey_id)
+    if survey.user_id != current_user.id:
+        flash('You are not authorized to reset this survey', 'error')
+        return redirect(url_for('index'))
+    
+    try:
+        for question in survey.questions:
+            if question.is_mcq:
+                for option in question.options:
+                    option.votes = 0
+                Vote.query.filter(Vote.poll_id == question.id).delete()
+            elif question.is_rating:
+                RatingVote.query.filter(RatingVote.option_id == question.options[0].id).delete()
+            elif question.is_text:
+                TextAnswer.query.filter(TextAnswer.option_id == question.options[0].id).delete()
+        
+        db.session.commit()
+        flash('Survey responses reset successfully!', 'success')
+    except Exception as e:
+        db.session.rollback()
+        flash('An error occurred while resetting the survey', 'error')
+    
+    return redirect(url_for('survey_details', survey_id=survey.id))
+
 if __name__ == '__main__':
     app.run()

@@ -1,0 +1,135 @@
+{% extends "base.html" %}
+
+{% block title %}Edit Survey - {{ survey.title }}{% endblock %}
+
+{% block content %}
+<div class="max-w-3xl mx-auto">
+    <div class="bg-white shadow-2xl rounded-2xl p-8">
+        <h1 class="text-3xl font-black text-transparent bg-clip-text bg-gradient-to-r from-indigo-600 to-purple-600 mb-8">Edit Survey</h1>
+
+        <form method="post" class="space-y-8" id="surveyForm">
+            <div class="space-y-2 group">
+                <label for="title" class="block text-lg font-semibold text-gray-900">Survey Title</label>
+                <input type="text" name="title" id="title" required minlength="5"
+                       value="{{ survey.title }}"
+                       class="mt-1 block w-full rounded-xl border-gray-300 shadow-sm 
+                              focus:border-indigo-500 focus:ring-indigo-500 transition-all
+                              group-hover:border-indigo-300 text-lg py-3">
+            </div>
+
+            <div class="space-y-2">
+                <label for="description" class="block text-lg font-semibold text-gray-900">Description (optional)</label>
+                <textarea name="description" id="description" rows="3"
+                          class="mt-1 block w-full rounded-xl border-gray-300 shadow-sm 
+                                 focus:border-indigo-500 focus:ring-indigo-500">{{ survey.description or '' }}</textarea>
+            </div>
+
+            <div class="bg-gray-50 rounded-xl p-6 space-y-6">
+                <h3 class="text-lg font-semibold text-gray-900">Settings</h3>
+                
+                <div class="space-y-4">
+                    <div class="space-y-2">
+                        <label for="expires_at" class="flex items-center space-x-2 text-gray-700">
+                            <svg class="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
+                                      d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                            </svg>
+                            <span>Survey Expiration (optional)</span>
+                        </label>
+                        <input type="datetime-local" name="expires_at" id="expires_at"
+                               value="{{ survey.expires_at.strftime('%Y-%m-%dT%H:%M') if survey.expires_at else '' }}"
+                               class="w-full rounded-lg border-gray-300 shadow-sm 
+                                      focus:border-indigo-500 focus:ring-indigo-500">
+                    </div>
+
+                    <div class="flex items-center space-x-3">
+                        <input type="checkbox" name="private" id="private"
+                               {% if survey.private %}checked{% endif %}
+                               class="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded">
+                        <label for="private" class="text-gray-700">Make this survey private</label>
+                    </div>
+
+                    <div class="space-y-2">
+                        <label for="password" class="flex items-center space-x-2 text-gray-700">
+                            <svg class="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
+                                      d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z"/>
+                            </svg>
+                            <span>Password Protection (optional)</span>
+                        </label>
+                        <input type="password" name="password" id="password"
+                               placeholder="Leave empty to keep current password"
+                               class="w-full rounded-lg border-gray-300 shadow-sm 
+                                      focus:border-indigo-500 focus:ring-indigo-500">
+                    </div>
+                </div>
+            </div>
+
+            <div class="flex justify-between pt-6">
+                <a href="{{ url_for('index') }}" 
+                   class="text-gray-600 hover:text-gray-800">Cancel</a>
+                <button type="submit" 
+                        class="gradient-bg text-white px-6 py-2 rounded-lg hover-scale">
+                    Save Changes
+                </button>
+            </div>
+        </form>
+    </div>
+
+    <div class="bg-white shadow-2xl rounded-2xl p-8 mt-8">
+        <h2 class="text-xl font-bold text-gray-900 mb-4">Survey Questions</h2>
+        <div class="space-y-4">
+            {% for question in survey.questions|sort(attribute='order') %}
+            <div class="border rounded-lg p-4">
+                <div class="flex justify-between items-start">
+                    <div>
+                        <h3 class="font-medium">{{ question.question }}</h3>
+                        <p class="text-sm text-gray-500">
+                            Type: 
+                            {% if question.is_mcq %}Multiple Choice
+                            {% elif question.is_rating %}Rating Scale
+                            {% else %}Text Response{% endif %}
+                        </p>
+                    </div>
+                    <span class="text-sm text-gray-500">Question {{ loop.index }}</span>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+        <p class="text-sm text-gray-500 mt-4">Note: Questions cannot be modified after survey creation. Create a new survey if you need different questions.</p>
+    </div>
+</div>
+
+<script>
+let formChanged = false;
+document.getElementById('surveyForm').addEventListener('change', () => formChanged = true);
+
+window.addEventListener('beforeunload', (e) => {
+    if (formChanged) {
+        e.preventDefault();
+        e.returnValue = '';
+    }
+});
+
+document.getElementById('surveyForm').addEventListener('submit', () => formChanged = false);
+
+const privateCheckbox = document.getElementById('private');
+const passwordField = document.getElementById('password');
+
+privateCheckbox?.addEventListener('change', function() {
+    if (this.checked) {
+        passwordField.placeholder = 'Set a password (optional) for additional security';
+        passwordField.disabled = false;
+    } else {
+        passwordField.placeholder = 'Password protection not available for public surveys';
+        passwordField.value = '';
+        passwordField.disabled = true;
+    }
+});
+
+if (!privateCheckbox?.checked) {
+    passwordField.disabled = true;
+    passwordField.placeholder = 'Password protection not available for public surveys';
+}
+</script>
+{% endblock %}
