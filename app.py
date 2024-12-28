@@ -280,138 +280,137 @@ def logout():
 @app.route('/create', methods=['GET', 'POST'])
 @login_required
 def create():
-    if request.method == 'POST':
-        question = request.form['question'].strip()
-        question_type = request.form.get('question_type', 'mcq')
-        rating_scale = int(request.form.get('rating_scale', 5))
-        expiration = request.form.get('expires_at')
-        private = request.form.get('private') == 'on'
-        password = request.form.get('password')
-        start_date = request.form.get('start_date')
-        
-        options = []
-        if question_type == 'mcq':
-            options = [opt.strip() for opt in request.form.getlist('options') if opt.strip()]
-            if len(options) < 2:
-                flash('You must provide at least 2 options for multiple choice questions', 'error')
-                return render_template('create.html')
-
-        multiple_votes = (
-            question_type == 'mcq' and 
-            request.form.get('selection_type') == 'multiple'
-        )
-
-        try:
-            if expiration:
-                expires_at = datetime.fromisoformat(expiration).astimezone(timezone.utc)
-            else:
-                expires_at = None
-
-            if start_date:
-                start_date = datetime.fromisoformat(start_date).astimezone(timezone.utc)
-            else:
-                start_date = None
-
-            image = request.files.get('image')
-            image_path = None
-            if image and allowed_file(image.filename):
-                filename = generate_image_filename(image.filename)
-                upload_path = Path(app.root_path) / 'static' / 'uploads'
-                upload_path.mkdir(exist_ok=True)
-                image.save(upload_path / filename)
-                image_path = f'uploads/{filename}'
-
-            poll = Poll(
-                question=question, 
-                slug=Poll().generate_slug(),
-                expires_at=expires_at,
-                start_date=start_date,
-                user_id=current_user.id,
-                private=private,
-                multiple_votes=multiple_votes,
-                image_path=image_path,
-                question_type=question_type,
-                rating_scale=rating_scale
-            )
-            
-            if question_type == 'mcq':
-                for option_text in options:
-                    option = Option(text=option_text, poll=poll)
-                    db.session.add(option)
-            else:
-                option = Option(text='Responses', poll=poll)
-                db.session.add(option)
-
-            db.session.add(poll)
-            db.session.commit()
-            flash('Poll created successfully!', 'success')
-            return redirect(url_for('index'))
-            
-        except Exception as e:
-            print(f"Error creating poll: {str(e)}")
-            db.session.rollback()
-            flash('An error occurred while creating the poll', 'error')
-            return render_template('create.html')
+    create_type = request.args.get('type', 'poll')
     
-    return render_template('create.html')
-
-@app.route('/create/survey', methods=['GET', 'POST'])
-@login_required
-def create_survey():
     if request.method == 'POST':
-        try:
-            title = request.form['title'].strip()
-            description = request.form.get('description', '').strip()
-            questions_data = json.loads(request.form['questions'])
-            
-            for q_data in questions_data:
-                if q_data['type'] == 'mcq':
-                    valid_options = [opt for opt in q_data['options'] if opt.strip()]
-                    if len(valid_options) < 2:
-                        flash('Multiple choice questions must have at least 2 options', 'error')
-                        return render_template('create_survey.html')
-            
-            survey = Survey(
-                title=title,
-                description=description,
-                slug=Survey().generate_slug(),
-                user_id=current_user.id
-            )
-
-            for i, q_data in enumerate(questions_data):
-                poll = Poll(
-                    question=q_data['question'],
-                    user_id=current_user.id,
-                    question_type=q_data['type'],
-                    rating_scale=q_data.get('rating_scale', 5),
-                    multiple_votes=q_data.get('multiple_votes', False),
-                    order=i,
-                    slug=str(uuid.uuid4())[:8]
+        if create_type == 'survey':
+            try:
+                title = request.form['title'].strip()
+                description = request.form.get('description', '').strip()
+                questions_data = json.loads(request.form['questions'])
+                
+                for q_data in questions_data:
+                    if q_data['type'] == 'mcq':
+                        valid_options = [opt for opt in q_data['options'] if opt.strip()]
+                        if len(valid_options) < 2:
+                            flash('Multiple choice questions must have at least 2 options', 'error')
+                            return render_template('create.html', create_type=create_type)
+                
+                survey = Survey(
+                    title=title,
+                    description=description,
+                    slug=Survey().generate_slug(),
+                    user_id=current_user.id
                 )
 
-                if q_data['type'] == 'mcq':
-                    valid_options = [opt for opt in q_data['options'] if opt.strip()]
-                    for option_text in valid_options:
-                        option = Option(text=option_text)
+                for i, q_data in enumerate(questions_data):
+                    poll = Poll(
+                        question=q_data['question'],
+                        user_id=current_user.id,
+                        question_type=q_data['type'],
+                        rating_scale=q_data.get('rating_scale', 5),
+                        multiple_votes=q_data.get('multiple_votes', False),
+                        order=i,
+                        slug=str(uuid.uuid4())[:8]
+                    )
+
+                    if q_data['type'] == 'mcq':
+                        valid_options = [opt for opt in q_data['options'] if opt.strip()]
+                        for option_text in valid_options:
+                            option = Option(text=option_text)
+                            poll.options.append(option)
+                    else:
+                        option = Option(text='Responses')
                         poll.options.append(option)
+
+                    survey.questions.append(poll)
+
+                db.session.add(survey)
+                db.session.commit()
+                flash('Survey created successfully!', 'success')
+                return redirect(url_for('survey_details', survey_id=survey.id))
+
+            except Exception as e:
+                db.session.rollback()
+                flash('An error occurred while creating the survey', 'error')
+                print(f"Error: {str(e)}")
+                return render_template('create.html', create_type=create_type)
+        else:
+            question = request.form['question'].strip()
+            question_type = request.form.get('question_type', 'mcq')
+            rating_scale = int(request.form.get('rating_scale', 5))
+            expiration = request.form.get('expires_at')
+            private = request.form.get('private') == 'on'
+            password = request.form.get('password')
+            start_date = request.form.get('start_date')
+            
+            options = []
+            if question_type == 'mcq':
+                options = [opt.strip() for opt in request.form.getlist('options') if opt.strip()]
+                if len(options) < 2:
+                    flash('You must provide at least 2 options for multiple choice questions', 'error')
+                    return render_template('create.html')
+
+            multiple_votes = (
+                question_type == 'mcq' and 
+                request.form.get('selection_type') == 'multiple'
+            )
+
+            try:
+                if expiration:
+                    expires_at = datetime.fromisoformat(expiration).astimezone(timezone.utc)
                 else:
-                    option = Option(text='Responses')
-                    poll.options.append(option)
+                    expires_at = None
 
-                survey.questions.append(poll)
+                if start_date:
+                    start_date = datetime.fromisoformat(start_date).astimezone(timezone.utc)
+                else:
+                    start_date = None
 
-            db.session.add(survey)
-            db.session.commit()
-            flash('Survey created successfully!', 'success')
-            return redirect(url_for('survey_details', survey_id=survey.id))
+                image = request.files.get('image')
+                image_path = None
+                if image and allowed_file(image.filename):
+                    filename = generate_image_filename(image.filename)
+                    upload_path = Path(app.root_path) / 'static' / 'uploads'
+                    upload_path.mkdir(exist_ok=True)
+                    image.save(upload_path / filename)
+                    image_path = f'uploads/{filename}'
 
-        except Exception as e:
-            db.session.rollback()
-            flash('An error occurred while creating the survey', 'error')
-            print(f"Error: {str(e)}")
-            return render_template('create_survey.html')
+                poll = Poll(
+                    question=question, 
+                    slug=Poll().generate_slug(),
+                    expires_at=expires_at,
+                    start_date=start_date,
+                    user_id=current_user.id,
+                    private=private,
+                    multiple_votes=multiple_votes,
+                    image_path=image_path,
+                    question_type=question_type,
+                    rating_scale=rating_scale
+                )
+                
+                if question_type == 'mcq':
+                    for option_text in options:
+                        option = Option(text=option_text, poll=poll)
+                        db.session.add(option)
+                else:
+                    option = Option(text='Responses', poll=poll)
+                    db.session.add(option)
 
-    return render_template('create_survey.html')
+                db.session.add(poll)
+                db.session.commit()
+                flash('Poll created successfully!', 'success')
+                return redirect(url_for('index'))
+                
+            except Exception as e:
+                print(f"Error creating poll: {str(e)}")
+                db.session.rollback()
+                flash('An error occurred while creating the poll', 'error')
+                return render_template('create.html')
+    
+    return render_template('create.html', create_type=create_type)
+
+
 
 @app.route('/delete/<int:poll_id>', methods=['POST'])
 @login_required

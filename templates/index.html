@@ -4,14 +4,14 @@
 <div class="flex justify-between items-center mb-8">
     <h1 class="text-4xl font-black text-gray-900 bg-gradient-to-r from-indigo-600 to-purple-600 bg-clip-text text-transparent">My Items</h1>
     <div class="flex space-x-4">
-        <a href="{{ url_for('create') }}" 
+        <a href="{{ url_for('create', type='poll') }}" 
            class="gradient-bg text-white px-4 py-2 rounded-lg hover-scale shadow-lg inline-flex items-center space-x-2">
             <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"/>
             </svg>
             <span>Create Poll</span>
         </a>
-        <a href="{{ url_for('create_survey') }}"
+        <a href="{{ url_for('create', type='survey') }}"
            class="bg-purple-600 text-white px-4 py-2 rounded-lg hover-scale shadow-lg inline-flex items-center space-x-2">
             <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/>
