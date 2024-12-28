@@ -1,0 +1,167 @@
+{% extends "base.html" %}
+
+{% block title %}Results - {{ survey.title }}{% endblock %}
+
+{% block content %}
+<div class="max-w-4xl mx-auto">
+    <div class="bg-white shadow-xl rounded-2xl p-8 mb-8">
+        <div class="flex justify-between items-start mb-6">
+            <div>
+                <h1 class="text-3xl font-bold text-gray-900">{{ survey.title }}</h1>
+                {% if survey.description %}
+                <p class="text-gray-600 mt-2">{{ survey.description }}</p>
+                {% endif %}
+            </div>
+            <div class="flex items-center space-x-4">
+                <span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium 
+                    {% if survey.active_state == 'scheduled' %}bg-yellow-100 text-yellow-800
+                    {% elif survey.active_state == 'expired' %}bg-red-100 text-red-800
+                    {% else %}bg-emerald-100 text-emerald-800{% endif %}">
+                    {{ survey.active_state|title }}
+                </span>
+                <button onclick="downloadSurveyResults()" 
+                        class="bg-red-50 text-red-600 px-3 py-1 rounded-lg hover:bg-red-100 flex items-center space-x-1">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
+                              d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+                    </svg>
+                    <span>Download PDF</span>
+                </button>
+            </div>
+        </div>
+
+        <div class="grid grid-cols-3 gap-6 text-center mb-8">
+            <div class="bg-indigo-50 rounded-lg p-4">
+                <div class="text-3xl font-bold text-indigo-600">{{ questions|length }}</div>
+                <div class="text-gray-600">Questions</div>
+            </div>
+            <div class="bg-purple-50 rounded-lg p-4">
+                <div class="text-3xl font-bold text-purple-600">{{ total_responses }}</div>
+                <div class="text-gray-600">Total Responses</div>
+            </div>
+            <div class="bg-emerald-50 rounded-lg p-4">
+                <div class="text-3xl font-bold text-emerald-600">{{ completion_rate }}%</div>
+                <div class="text-gray-600">Completion Rate</div>
+            </div>
+        </div>
+
+        <div class="space-y-8">
+            {% for question in questions %}
+            <div class="bg-gray-50 rounded-xl p-6">
+                <h2 class="text-xl font-semibold text-gray-900 mb-4">
+                    {{ loop.index }}. {{ question.question }}
+                </h2>
+
+                {% if question.is_mcq %}
+                    <div class="grid md:grid-cols-2 gap-6">
+                        <div>
+                            <canvas id="chart{{ question.id }}" class="w-full"></canvas>
+                        </div>
+                        <div class="space-y-3">
+                            {% for option in question.options %}
+                            <div>
+                                <div class="flex justify-between text-sm text-gray-600 mb-1">
+                                    <span>{{ option.text }}</span>
+                                    <span>{{ option.votes }} votes</span>
+                                </div>
+                                <div class="h-2 bg-gray-200 rounded-full">
+                                    {% set percentage = (option.votes / question.options|map(attribute='votes')|sum * 100)|round if question.options|map(attribute='votes')|sum > 0 else 0 %}
+                                    <div class="h-2 bg-indigo-600 rounded-full" style="width: {{ percentage }}%"></div>
+                                </div>
+                            </div>
+                            {% endfor %}
+                        </div>
+                    </div>
+
+                {% elif question.is_rating %}
+                    {% set ratings = question.options[0].rating_votes|map(attribute='rating')|list %}
+                    {% if ratings %}
+                        {% set avg_rating = (ratings|sum / ratings|length)|round(1) %}
+                        <div class="grid md:grid-cols-2 gap-6">
+                            <div class="text-center">
+                                <div class="text-4xl font-bold text-indigo-600">{{ avg_rating }}</div>
+                                <div class="text-gray-600">Average Rating</div>
+                                <div class="text-sm text-gray-500">From {{ ratings|length }} responses</div>
+                            </div>
+                            <div class="space-y-3">
+                                {% for i in range(1, question.rating_scale + 1) %}
+                                {% set count = ratings|select("==", i)|list|length %}
+                                {% set percentage = (count / ratings|length * 100)|round %}
+                                <div>
+                                    <div class="flex justify-between text-sm text-gray-600 mb-1">
+                                        <span>{{ i }} star{{ 's' if i != 1 }}</span>
+                                        <span>{{ count }} vote{{ 's' if count != 1 }}</span>
+                                    </div>
+                                    <div class="h-2 bg-gray-200 rounded-full">
+                                        <div class="h-2 bg-indigo-600 rounded-full" style="width: {{ percentage }}%"></div>
+                                    </div>
+                                </div>
+                                {% endfor %}
+                            </div>
+                        </div>
+                    {% else %}
+                        <p class="text-center text-gray-500">No ratings yet</p>
+                    {% endif %}
+
+                {% elif question.is_text %}
+                    {% if question.options[0].text_answers %}
+                        <div class="space-y-4 max-h-[400px] overflow-y-auto">
+                            {% for answer in question.options[0].text_answers|sort(attribute='timestamp', reverse=true) %}
+                            <div class="bg-white p-4 rounded-lg shadow">
+                                <p class="text-gray-700">{{ answer.text }}</p>
+                                <p class="text-xs text-gray-500 mt-2">
+                                    Submitted {{ answer.timestamp.strftime('%Y-%m-%d %H:%M') }}
+                                </p>
+                            </div>
+                            {% endfor %}
+                        </div>
+                    {% else %}
+                        <p class="text-center text-gray-500">No text responses yet</p>
+                    {% endif %}
+                {% endif %}
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    {% for question in questions %}
+        {% if question.is_mcq %}
+            new Chart(document.getElementById('chart{{ question.id }}').getContext('2d'), {
+                type: 'doughnut',
+                data: {
+                    labels: {{ question.options|map(attribute='text')|list|tojson }},
+                    datasets: [{
+                        data: {{ question.options|map(attribute='votes')|list|tojson }},
+                        backgroundColor: [
+                            'rgba(99, 102, 241, 0.8)',
+                            'rgba(139, 92, 246, 0.8)',
+                            'rgba(167, 139, 250, 0.8)',
+                            'rgba(192, 132, 252, 0.8)',
+                            'rgba(216, 180, 254, 0.8)',
+                            'rgba(232, 121, 249, 0.8)',
+                        ],
+                        borderWidth: 0
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    plugins: {
+                        legend: {
+                            position: 'bottom',
+                        }
+                    }
+                }
+            });
+        {% endif %}
+    {% endfor %}
+});
+
+function downloadSurveyResults() {
+    window.location.href = "{{ url_for('download_survey_results', survey_id=survey.id) }}";
+}
+</script>
+{% endblock %}

@@ -29,64 +29,94 @@
                 <div class="text-3xl font-bold text-emerald-600">{{ total_votes }}</div>
                 <div class="text-gray-600">Total Votes</div>
             </div>
+            <div class="bg-purple-50 rounded-lg p-4">
+                <div class="text-3xl font-bold text-purple-600">{{ surveys|length }}</div>
+                <div class="text-gray-600">Surveys</div>
+            </div>
         </div>
     </div>
 
-    <div class="bg-white shadow-xl rounded-lg p-8">
-        <div class="flex justify-between items-center mb-6">
-            <h2 class="text-xl font-bold text-gray-900">Your Polls</h2>
-            <a href="{{ url_for('create') }}" 
-               class="gradient-bg text-white px-4 py-2 rounded-lg hover-scale">
-                Create New Poll
-            </a>
-        </div>
-
-        <div class="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-            {% for poll in user_polls %}
-            <div class="border rounded-lg p-4 hover:shadow-md transition">
-                <div class="flex justify-between items-start mb-3">
-                    <div>
-                        <h3 class="font-medium text-gray-900">{{ poll.question }}</h3>
-                        <div class="text-sm text-gray-500">
-                            Type: 
-                            {% if poll.is_mcq %}Multiple Choice
-                            {% elif poll.is_rating %}Rating Scale
-                            {% else %}Text Response{% endif %}
-                        </div>
+    <div class="grid gap-8 mt-8">
+        <div class="bg-white shadow-xl rounded-lg p-8">
+            <h2 class="text-xl font-bold text-gray-900 mb-4">Your Surveys</h2>
+            <div class="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+                {% for survey in surveys %}
+                <div class="border rounded-lg p-4 hover:shadow-md transition">
+                    <h3 class="font-medium text-gray-900">{{ survey.title }}</h3>
+                    <div class="text-sm text-gray-500 mt-1 mb-3">
+                        {{ survey.questions|length }} questions
                     </div>
-                    <span class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium 
-                        {% if poll.is_expired %}bg-red-100 text-red-800
-                        {% else %}bg-emerald-100 text-emerald-800{% endif %}">
-                        {% if poll.is_expired %}Expired{% else %}Active{% endif %}
-                    </span>
-                </div>
-                
-                <div class="text-sm text-gray-500 mb-3">
-                    Responses: 
-                    {% if poll.is_mcq %}
-                        {{ poll.options|map(attribute='votes')|sum }}
-                    {% elif poll.is_rating %}
-                        {{ poll.options[0].rating_votes|length }}
-                    {% else %}
-                        {{ poll.options[0].text_answers|length }}
-                    {% endif %}
-                </div>
-                
-                <div class="flex space-x-2">
-                    <a href="{{ url_for('poll_details', poll_id=poll.id) }}" 
-                       class="flex-1 text-center bg-indigo-50 text-indigo-600 px-3 py-1 rounded hover:bg-indigo-100">
-                        View Details
-                    </a>
-                    <form action="{{ url_for('delete_poll', poll_id=poll.id) }}" method="post" class="flex-1">
-                        <button type="submit" 
-                                class="w-full bg-red-50 text-red-600 px-3 py-1 rounded hover:bg-red-100"
-                                onclick="return confirm('Are you sure you want to delete this poll?')">
+                    <div class="flex space-x-2">
+                        <a href="{{ url_for('survey_details', survey_id=survey.id) }}"
+                           class="flex-1 text-center bg-purple-50 text-purple-600 px-3 py-1 rounded hover:bg-purple-100">
+                            View Results
+                        </a>
+                        <button onclick="deleteSurvey({{ survey.id }})"
+                                class="flex-1 text-center bg-red-50 text-red-600 px-3 py-1 rounded hover:bg-red-100">
                             Delete
                         </button>
-                    </form>
+                    </div>
                 </div>
+                {% endfor %}
             </div>
-            {% endfor %}
+        </div>
+
+        <div class="bg-white shadow-xl rounded-lg p-8">
+            <div class="flex justify-between items-center mb-6">
+                <h2 class="text-xl font-bold text-gray-900">Your Polls</h2>
+                <a href="{{ url_for('create') }}" 
+                   class="gradient-bg text-white px-4 py-2 rounded-lg hover-scale">
+                    Create New Poll
+                </a>
+            </div>
+
+            <div class="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+                {% for poll in user_polls %}
+                <div class="border rounded-lg p-4 hover:shadow-md transition">
+                    <div class="flex justify-between items-start mb-3">
+                        <div>
+                            <h3 class="font-medium text-gray-900">{{ poll.question }}</h3>
+                            <div class="text-sm text-gray-500">
+                                Type: 
+                                {% if poll.is_mcq %}Multiple Choice
+                                {% elif poll.is_rating %}Rating Scale
+                                {% else %}Text Response{% endif %}
+                            </div>
+                        </div>
+                        <span class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium 
+                            {% if poll.is_expired %}bg-red-100 text-red-800
+                            {% else %}bg-emerald-100 text-emerald-800{% endif %}">
+                            {% if poll.is_expired %}Expired{% else %}Active{% endif %}
+                        </span>
+                    </div>
+                    
+                    <div class="text-sm text-gray-500 mb-3">
+                        Responses: 
+                        {% if poll.is_mcq %}
+                            {{ poll.options|map(attribute='votes')|sum }}
+                        {% elif poll.is_rating %}
+                            {{ poll.options[0].rating_votes|length }}
+                        {% else %}
+                            {{ poll.options[0].text_answers|length }}
+                        {% endif %}
+                    </div>
+                    
+                    <div class="flex space-x-2">
+                        <a href="{{ url_for('poll_details', poll_id=poll.id) }}" 
+                           class="flex-1 text-center bg-indigo-50 text-indigo-600 px-3 py-1 rounded hover:bg-indigo-100">
+                            View Details
+                        </a>
+                        <form action="{{ url_for('delete_poll', poll_id=poll.id) }}" method="post" class="flex-1">
+                            <button type="submit" 
+                                    class="w-full bg-red-50 text-red-600 px-3 py-1 rounded hover:bg-red-100"
+                                    onclick="return confirm('Are you sure you want to delete this poll?')">
+                                Delete
+                            </button>
+                        </form>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
         </div>
     </div>
 </div>

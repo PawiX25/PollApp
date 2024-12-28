@@ -11,8 +11,10 @@ from pathlib import Path
 from io import BytesIO
 from reportlab.lib import colors
 from reportlab.lib.pagesizes import letter
-from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Paragraph
+from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Paragraph, Spacer
 from reportlab.lib.styles import getSampleStyleSheet
+import json
+from sqlalchemy.orm import validates
 
 load_dotenv()
 
@@ -39,6 +41,7 @@ class User(UserMixin, db.Model):
     password_hash = db.Column(db.String(200), nullable=False)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     polls = db.relationship('Poll', backref='author', lazy=True)
+    surveys = db.relationship('Survey', backref='author', lazy=True)
 
     def set_password(self, password):
         self.password_hash = generate_password_hash(password)
@@ -61,6 +64,32 @@ def generate_image_filename(original_filename):
     clean_filename = str(Path(f"{uuid.uuid4()}{get_file_extension(original_filename)}")).replace('\\', '/')
     return clean_filename
 
+class Survey(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    title = db.Column(db.String(200), nullable=False)
+    slug = db.Column(db.String(100), unique=True, nullable=False)
+    description = db.Column(db.Text, nullable=True)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    expires_at = db.Column(db.DateTime, nullable=True)
+    start_date = db.Column(db.DateTime, nullable=True)
+    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    private = db.Column(db.Boolean, default=False)
+    access_token = db.Column(db.String(16), unique=True)
+    password_hash = db.Column(db.String(200), nullable=True)
+    image_path = db.Column(db.String(200))
+    questions = db.relationship('Poll', backref='survey', lazy=True, cascade='all, delete-orphan')
+
+    def generate_slug(self):
+        return str(uuid.uuid4())[:8]
+
+    def generate_access_token(self):
+        return os.urandom(8).hex()
+
+    def get_share_url(self, _external=True):
+        if self.private:
+            return url_for('view_survey', slug=self.slug, token=self.access_token, _external=_external)
+        return url_for('view_survey', slug=self.slug, _external=_external)
+
 class Poll(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     slug = db.Column(db.String(100), unique=True, nullable=False)
@@ -77,7 +106,15 @@ class Poll(db.Model):
     image_path = db.Column(db.String(200))
     question_type = db.Column(db.String(20), default='mcq')
     rating_scale = db.Column(db.Integer, default=5)
-    
+    survey_id = db.Column(db.Integer, db.ForeignKey('survey.id'), nullable=True)
+    order = db.Column(db.Integer, default=0)
+
+    @validates('slug')
+    def validate_slug(self, key, slug):
+        if not slug:
+            return self.generate_slug()
+        return slug
+
     @property
     def is_mcq(self):
         return self.question_type == 'mcq'
@@ -188,15 +225,16 @@ with app.app_context():
     db.create_all()
 
 @app.route('/')
-def landing():
-    return render_template('landing.html')
-
-@app.route('/polls')
 def index():
     if current_user.is_authenticated:
-        polls = Poll.query.filter_by(user_id=current_user.id).order_by(Poll.created_at.desc()).all()
-        return render_template('index.html', polls=polls)
+        polls = Poll.query.filter_by(user_id=current_user.id, survey_id=None).order_by(Poll.created_at.desc()).all()
+        surveys = Survey.query.filter_by(user_id=current_user.id).order_by(Survey.created_at.desc()).all()
+        return render_template('index.html', polls=polls, surveys=surveys)
     return redirect(url_for('login'))
+
+@app.route('/polls')
+def landing():
+    return render_template('landing.html')
 
 @app.route('/register', methods=['GET', 'POST'])
 def register():
@@ -316,6 +354,64 @@ def create():
             return render_template('create.html')
     
     return render_template('create.html')
+
+@app.route('/create/survey', methods=['GET', 'POST'])
+@login_required
+def create_survey():
+    if request.method == 'POST':
+        try:
+            title = request.form['title'].strip()
+            description = request.form.get('description', '').strip()
+            questions_data = json.loads(request.form['questions'])
+            
+            for q_data in questions_data:
+                if q_data['type'] == 'mcq':
+                    valid_options = [opt for opt in q_data['options'] if opt.strip()]
+                    if len(valid_options) < 2:
+                        flash('Multiple choice questions must have at least 2 options', 'error')
+                        return render_template('create_survey.html')
+            
+            survey = Survey(
+                title=title,
+                description=description,
+                slug=Survey().generate_slug(),
+                user_id=current_user.id
+            )
+
+            for i, q_data in enumerate(questions_data):
+                poll = Poll(
+                    question=q_data['question'],
+                    user_id=current_user.id,
+                    question_type=q_data['type'],
+                    rating_scale=q_data.get('rating_scale', 5),
+                    multiple_votes=q_data.get('multiple_votes', False),
+                    order=i,
+                    slug=str(uuid.uuid4())[:8]
+                )
+
+                if q_data['type'] == 'mcq':
+                    valid_options = [opt for opt in q_data['options'] if opt.strip()]
+                    for option_text in valid_options:
+                        option = Option(text=option_text)
+                        poll.options.append(option)
+                else:
+                    option = Option(text='Responses')
+                    poll.options.append(option)
+
+                survey.questions.append(poll)
+
+            db.session.add(survey)
+            db.session.commit()
+            flash('Survey created successfully!', 'success')
+            return redirect(url_for('survey_details', survey_id=survey.id))
+
+        except Exception as e:
+            db.session.rollback()
+            flash('An error occurred while creating the survey', 'error')
+            print(f"Error: {str(e)}")
+            return render_template('create_survey.html')
+
+    return render_template('create_survey.html')
 
 @app.route('/delete/<int:poll_id>', methods=['POST'])
 @login_required
@@ -573,17 +669,16 @@ def duplicate_poll(poll_id):
 @app.route('/profile')
 @login_required
 def profile():
-    user_polls = Poll.query.filter_by(user_id=current_user.id).order_by(Poll.created_at.desc()).all()
-    active_polls = [poll for poll in user_polls if not poll.is_expired]
+    polls = Poll.query.filter_by(user_id=current_user.id, survey_id=None).order_by(Poll.created_at.desc()).all()
+    surveys = Survey.query.filter_by(user_id=current_user.id).order_by(Survey.created_at.desc()).all()
+    active_polls = [poll for poll in polls if not poll.is_expired]
     
-    total_votes = 0
-    for poll in user_polls:
-        for option in poll.options:
-            total_votes += option.votes
-            
-    return render_template('profile.html', 
-                         user_polls=user_polls,
+    total_votes = sum(sum(option.votes for option in poll.options) for poll in polls)
+    
+    return render_template('profile.html',
+                         user_polls=polls,
                          active_polls=active_polls,
+                         surveys=surveys,
                          total_votes=total_votes)
 
 @app.route('/poll/<int:poll_id>/download')
@@ -701,6 +796,259 @@ def preview_poll():
     except Exception as e:
         flash('An error occurred while generating preview', 'error')
         return redirect(url_for('create'))
+
+@app.route('/survey/<string:slug>')
+def view_survey(slug):
+    survey = Survey.query.filter_by(slug=slug).first_or_404()
+     questions = sorted(survey.questions, key=lambda x: x.order)
+    return render_template('survey.html', survey=survey, questions=questions)
+
+@app.route('/survey/<string:slug>/submit', methods=['POST'])
+def submit_survey(slug):
+    survey = Survey.query.filter_by(slug=slug).first_or_404()
+    questions = sorted(survey.questions, key=lambda x: x.order)
+    
+    if 'session_id' not in session:
+        session['session_id'] = os.urandom(16).hex()
+    
+    try:
+        for question in questions:
+            answer_data = request.form.get(f'answers[{question.id}]')
+            if not answer_data and not isinstance(answer_data, list):
+                answer_data = request.form.getlist(f'answers[{question.id}][]')
+            
+            if question.is_mcq:
+                option_ids = answer_data if isinstance(answer_data, list) else [answer_data]
+                for option_id in option_ids:
+                    option = Option.query.get_or_404(option_id)
+                    option.votes += 1
+                    vote = Vote(
+                        poll_id=question.id,
+                        option_id=option_id,
+                        session_id=session['session_id']
+                    )
+                    db.session.add(vote)
+                    
+            elif question.is_rating:
+                rating = int(answer_data)
+                vote = RatingVote(
+                    rating=rating,
+                    option_id=question.options[0].id,
+                    session_id=session['session_id']
+                )
+                db.session.add(vote)
+                
+            elif question.is_text:
+                text = answer_data.strip()
+                if text:
+                    answer = TextAnswer(
+                        text=text,
+                        option_id=question.options[0].id,
+                        session_id=session['session_id']
+                    )
+                    db.session.add(answer)
+        
+        db.session.commit()
+        flash('Thank you for completing the survey!', 'success')
+        return redirect(url_for('view_survey', slug=survey.slug))
+        
+    except Exception as e:
+        db.session.rollback()
+        flash('An error occurred while submitting your responses', 'error')
+        print(f"Error submitting survey: {str(e)}")
+        return redirect(url_for('view_survey', slug=survey.slug))
+
+@app.route('/survey/<int:survey_id>/details')
+@login_required
+def survey_details(survey_id):
+    survey = Survey.query.get_or_404(survey_id)
+    if survey.user_id != current_user.id:
+        flash('You are not authorized to view these results', 'error')
+        return redirect(url_for('index'))
+    
+    questions = sorted(survey.questions, key=lambda x: x.order)
+    
+    total_responses = 0
+    questions_stats = []
+    
+    for question in questions:
+        if question.is_mcq:
+            responses = sum(option.votes for option in question.options)
+            total_votes = responses
+            options_data = [{
+                'text': option.text,
+                'votes': option.votes,
+                'percentage': (option.votes / total_votes * 100) if total_votes > 0 else 0
+            } for option in question.options]
+            
+        elif question.is_rating:
+            ratings = [vote.rating for vote in question.options[0].rating_votes]
+            responses = len(ratings)
+            avg_rating = sum(ratings) / len(ratings) if ratings else 0
+            options_data = {
+                'average': avg_rating,
+                'total_ratings': responses,
+                'distribution': {i: ratings.count(i) for i in range(1, question.rating_scale + 1)}
+            }
+            
+        elif question.is_text:
+            responses = len(question.options[0].text_answers)
+            options_data = [{
+                'text': answer.text,
+                'timestamp': answer.timestamp
+            } for answer in question.options[0].text_answers]
+        
+        total_responses = max(total_responses, responses)
+        questions_stats.append({
+            'question': question,
+            'responses': responses,
+            'data': options_data
+        })
+    
+    completion_rate = round((sum(q['responses'] for q in questions_stats) / 
+                           (len(questions) * total_responses) * 100) if total_responses > 0 else 0)
+    
+    return render_template('survey_details.html',
+                         survey=survey,
+                         questions=questions_stats,
+                         total_responses=total_responses,
+                         completion_rate=completion_rate)
+
+@app.route('/survey/<int:survey_id>/results')
+@login_required
+def survey_results(survey_id):
+    survey = Survey.query.get_or_404(survey_id)
+    if survey.user_id != current_user.id:
+        flash('You are not authorized to view these results', 'error')
+        return redirect(url_for('index'))
+    
+    questions = sorted(survey.questions, key=lambda x: x.order)
+    
+    total_responses = 0
+    completed_responses = 0
+    
+    if questions:
+        for question in questions:
+            if question.is_mcq:
+                responses = sum(option.votes for option in question.options)
+            elif question.is_rating:
+                responses = len(question.options[0].rating_votes)
+            else:
+                responses = len(question.options[0].text_answers)
+            total_responses = max(total_responses, responses)
+            completed_responses += responses
+        
+        completion_rate = round((completed_responses / (len(questions) * total_responses)) * 100 if total_responses > 0 else 0)
+    else:
+        total_responses = 0
+        completion_rate = 0
+    
+    return render_template('survey_results.html', 
+                         survey=survey, 
+                         questions=questions,
+                         total_responses=total_responses,
+                         completion_rate=completion_rate)
+
+@app.route('/survey/<int:survey_id>/download')
+@login_required
+def download_survey_results(survey_id):
+    survey = Survey.query.get_or_404(survey_id)
+    if survey.user_id != current_user.id:
+        flash('You are not authorized to download these results', 'error')
+        return redirect(url_for('index'))
+
+    buffer = BytesIO()
+    doc = SimpleDocTemplate(buffer, pagesize=letter)
+    styles = getSampleStyleSheet()
+    elements = []
+    
+    elements.append(Paragraph(f"Survey Results: {survey.title}", styles['Title']))
+    if survey.description:
+        elements.append(Paragraph(survey.description, styles['Normal']))
+    elements.append(Spacer(1, 12))
+    
+    for i, question in enumerate(sorted(survey.questions, key=lambda x: x.order), 1):
+        elements.append(Paragraph(f"Question {i}: {question.question}", styles['Heading2']))
+        
+        if question.is_mcq:
+            data = [['Option', 'Votes', 'Percentage']]
+            total_votes = sum(opt.votes for opt in question.options)
+            
+            for option in question.options:
+                percentage = (option.votes / total_votes * 100) if total_votes > 0 else 0
+                data.append([option.text, str(option.votes), f'{percentage:.1f}%'])
+            
+            table = Table(data)
+            table.setStyle(TableStyle([
+                ('BACKGROUND', (0, 0), (-1, 0), colors.grey),
+                ('TEXTCOLOR', (0, 0), (-1, 0), colors.whitesmoke),
+                ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
+                ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
+                ('GRID', (0, 0), (-1, -1), 1, colors.black)
+            ]))
+            elements.append(table)
+            
+        elif question.is_rating:
+            ratings = [vote.rating for vote in question.options[0].rating_votes]
+            if ratings:
+                avg_rating = sum(ratings) / len(ratings)
+                elements.append(Paragraph(f"Average Rating: {avg_rating:.1f}", styles['Normal']))
+                
+                data = [['Rating', 'Count', 'Percentage']]
+                for i in range(1, question.rating_scale + 1):
+                    count = ratings.count(i)
+                    percentage = (count / len(ratings) * 100) if ratings else 0
+                    data.append([str(i), str(count), f'{percentage:.1f}%'])
+                
+                table = Table(data)
+                table.setStyle(TableStyle([
+                    ('BACKGROUND', (0, 0), (-1, 0), colors.grey),
+                    ('TEXTCOLOR', (0, 0), (-1, 0), colors.whitesmoke),
+                    ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
+                    ('GRID', (0, 0), (-1, -1), 1, colors.black)
+                ]))
+                elements.append(table)
+            else:
+                elements.append(Paragraph("No ratings yet", styles['Normal']))
+                
+        elif question.is_text:
+            answers = question.options[0].text_answers
+            if answers:
+                elements.append(Paragraph(f"Total Responses: {len(answers)}", styles['Normal']))
+                for answer in answers:
+                    elements.append(Paragraph(f"• {answer.text}", styles['Normal']))
+            else:
+                elements.append(Paragraph("No text responses yet", styles['Normal']))
+        
+        elements.append(Spacer(1, 12))
+    
+    doc.build(elements)
+    buffer.seek(0)
+    
+    return send_file(
+        buffer,
+        mimetype='application/pdf',
+        as_attachment=True,
+        download_name=f'survey_results_{survey.id}.pdf'
+    )
+
+@app.route('/survey/<int:survey_id>/delete', methods=['POST'])
+@login_required
+def delete_survey(survey_id):
+    survey = Survey.query.get_or_404(survey_id)
+    if survey.user_id != current_user.id:
+        flash('You are not authorized to delete this survey', 'error')
+        return redirect(url_for('index'))
+    
+    try:
+        db.session.delete(survey)
+        db.session.commit()
+        flash('Survey deleted successfully!', 'success')
+    except Exception as e:
+        db.session.rollback()
+        flash('An error occurred while deleting the survey', 'error')
+    
+    return redirect(url_for('profile'))
 
 if __name__ == '__main__':
     app.run()

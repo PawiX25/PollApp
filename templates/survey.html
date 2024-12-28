@@ -1,0 +1,156 @@
+{% extends "base.html" %}
+
+{% block title %}{{ survey.title }}{% endblock %}
+
+{% block content %}
+<div class="max-w-3xl mx-auto">
+    <div class="bg-white shadow-xl rounded-2xl p-8">
+        <h1 class="text-3xl font-bold text-gray-900 mb-4">{{ survey.title }}</h1>
+        
+        {% if survey.description %}
+        <p class="text-gray-600 mb-8">{{ survey.description }}</p>
+        {% endif %}
+
+        <form method="post" action="{{ url_for('submit_survey', slug=survey.slug) }}" class="space-y-8" id="surveyForm">
+            {% for question in questions %}
+            <div class="bg-gray-50 rounded-xl p-6 space-y-4" data-question-id="{{ question.id }}">
+                <h2 class="text-xl font-semibold text-gray-900">{{ loop.index }}. {{ question.question }}</h2>
+                
+                {% if question.is_mcq %}
+                    <div class="space-y-3">
+                        {% for option in question.options %}
+                        <label class="block p-4 hover:bg-indigo-50 rounded-xl transition-colors cursor-pointer">
+                            <div class="flex items-center space-x-3">
+                                {% if question.multiple_votes %}
+                                <input type="checkbox" 
+                                       name="answers[{{ question.id }}][]" 
+                                       value="{{ option.id }}"
+                                       class="w-5 h-5 text-indigo-600 border-gray-300 rounded focus:ring-indigo-500 focus:ring-offset-0">
+                                {% else %}
+                                <input type="radio" 
+                                       name="answers[{{ question.id }}]" 
+                                       value="{{ option.id }}"
+                                       required
+                                       class="w-5 h-5 text-indigo-600 border-gray-300 focus:ring-indigo-500 focus:ring-offset-0">
+                                {% endif %}
+                                <span class="text-lg text-gray-900">{{ option.text }}</span>
+                            </div>
+                        </label>
+                        {% endfor %}
+
+                        {% if question.multiple_votes %}
+                        <p class="text-sm text-indigo-600 italic flex items-center">
+                            <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                            </svg>
+                            Select multiple options
+                        </p>
+                        {% endif %}
+                    </div>
+
+                {% elif question.is_rating %}
+                    <div class="flex flex-wrap justify-center gap-4 py-4">
+                        {% for i in range(1, question.rating_scale + 1) %}
+                        <label class="rating-option cursor-pointer">
+                            <input type="radio" 
+                                   name="answers[{{ question.id }}]" 
+                                   value="{{ i }}" 
+                                   required 
+                                   class="peer hidden">
+                            <div class="w-16 h-16 flex items-center justify-center text-lg font-medium 
+                                      bg-gray-100 rounded-xl peer-checked:bg-indigo-600 peer-checked:text-white
+                                      hover:bg-indigo-500 hover:text-white transition-all transform hover:scale-110">
+                                {{ i }}
+                            </div>
+                        </label>
+                        {% endfor %}
+                    </div>
+                    <p class="text-center text-sm text-gray-500">Click on a number to rate</p>
+
+                {% elif question.is_text %}
+                    <div class="space-y-2">
+                        <textarea name="answers[{{ question.id }}]" 
+                                  rows="4" 
+                                  required
+                                  placeholder="Enter your answer here..."
+                                  class="w-full rounded-xl border-gray-300 shadow-sm 
+                                         focus:border-indigo-500 focus:ring-indigo-500"></textarea>
+                    </div>
+                {% endif %}
+
+                <div class="text-right">
+                    <span class="text-sm text-gray-500">Question {{ loop.index }} of {{ questions|length }}</span>
+                </div>
+            </div>
+            {% endfor %}
+
+            <div class="sticky bottom-4 bg-white shadow-lg rounded-xl p-4 border mt-8">
+                <div class="flex items-center justify-between">
+                    <span class="text-gray-600">Complete all questions to submit</span>
+                    <button type="submit" 
+                            class="gradient-bg text-white px-6 py-3 rounded-xl hover-scale shadow-lg
+                                   flex items-center space-x-2">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
+                        </svg>
+                        <span>Submit Survey</span>
+                    </button>
+                </div>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+document.getElementById('surveyForm').addEventListener('submit', function(e) {
+    e.preventDefault();
+    
+    let isValid = true;
+    const questions = document.querySelectorAll('[data-question-id]');
+    
+    questions.forEach(questionDiv => {
+        const questionId = questionDiv.dataset.questionId;
+        const inputs = questionDiv.querySelectorAll('input[type="radio"], input[type="checkbox"], textarea');
+        const checkboxes = questionDiv.querySelectorAll('input[type="checkbox"]:checked');
+        
+        if (inputs[0].type === 'checkbox' && checkboxes.length === 0) {
+            isValid = false;
+            showToast('Please answer all questions', 'error');
+            questionDiv.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        }
+        
+        if (inputs[0].type === 'radio' && !questionDiv.querySelector('input[type="radio"]:checked')) {
+            isValid = false;
+            showToast('Please answer all questions', 'error');
+            questionDiv.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        }
+        
+        if (inputs[0].tagName === 'TEXTAREA' && !inputs[0].value.trim()) {
+            isValid = false;
+            showToast('Please answer all questions', 'error');
+            questionDiv.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        }
+    });
+    
+    if (isValid) {
+        this.submit();
+    }
+});
+
+const questions = document.querySelectorAll('[data-question-id]');
+questions.forEach((question, index) => {
+    if (index < questions.length - 1) {
+        const inputs = question.querySelectorAll('input, textarea');
+        inputs.forEach(input => {
+            input.addEventListener('change', () => {
+                if (input.checkValidity()) {
+                    setTimeout(() => {
+                        questions[index + 1].scrollIntoView({ behavior: 'smooth', block: 'center' });
+                    }, 300);
+                }
+            });
+        });
+    }
+});
+</script>
+{% endblock %}

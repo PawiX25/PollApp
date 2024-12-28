@@ -1,0 +1,163 @@
+{% extends "base.html" %}
+
+{% block title %}Survey Details - {{ survey.title }}{% endblock %}
+
+{% block content %}
+<div class="max-w-4xl mx-auto">
+    <div class="bg-white shadow-xl rounded-2xl p-8">
+        <div class="flex justify-between items-start mb-6">
+            <div>
+                <h1 class="text-3xl font-bold text-gray-900">{{ survey.title }}</h1>
+                {% if survey.description %}
+                <p class="text-gray-600 mt-2">{{ survey.description }}</p>
+                {% endif %}
+            </div>
+            
+            <div class="flex items-center space-x-4">
+                <button onclick="shareSurvey('{{ survey.get_share_url() }}')" 
+                        class="bg-indigo-50 text-indigo-600 px-4 py-2 rounded-lg hover:bg-indigo-100">
+                    Share Survey
+                </button>
+                <a href="{{ url_for('download_survey_results', survey_id=survey.id) }}"
+                   class="bg-red-50 text-red-600 px-4 py-2 rounded-lg hover:bg-red-100">
+                    Download Results
+                </a>
+            </div>
+        </div>
+
+        <div class="grid grid-cols-3 gap-6 mb-8">
+            <div class="bg-indigo-50 rounded-xl p-6 text-center">
+                <div class="text-3xl font-bold text-indigo-600">{{ questions|length }}</div>
+                <div class="text-gray-600">Questions</div>
+            </div>
+            <div class="bg-purple-50 rounded-xl p-6 text-center">
+                <div class="text-3xl font-bold text-purple-600">{{ total_responses }}</div>
+                <div class="text-gray-600">Total Responses</div>
+            </div>
+            <div class="bg-emerald-50 rounded-xl p-6 text-center">
+                <div class="text-3xl font-bold text-emerald-600">{{ completion_rate }}%</div>
+                <div class="text-gray-600">Completion Rate</div>
+            </div>
+        </div>
+
+        <div class="space-y-8">
+            {% for item in questions %}
+            <div class="bg-gray-50 rounded-xl p-6">
+                <h2 class="text-xl font-semibold text-gray-900 mb-4">
+                    Question {{ loop.index }}: {{ item.question.question }}
+                </h2>
+
+                {% if item.question.is_mcq %}
+                    <div class="grid md:grid-cols-2 gap-6">
+                        <div>
+                            <canvas id="chart{{ item.question.id }}" class="w-full"></canvas>
+                        </div>
+                        <div class="space-y-3">
+                            {% for option in item.data %}
+                            <div>
+                                <div class="flex justify-between text-sm text-gray-600 mb-1">
+                                    <span>{{ option.text }}</span>
+                                    <span>{{ option.votes }} votes</span>
+                                </div>
+                                <div class="h-2 bg-gray-200 rounded-full">
+                                    <div class="h-2 bg-indigo-600 rounded-full" 
+                                         style="width: {{ option.percentage }}%"></div>
+                                </div>
+                            </div>
+                            {% endfor %}
+                        </div>
+                    </div>
+
+                {% elif item.question.is_rating %}
+                    <div class="grid md:grid-cols-2 gap-6">
+                        <div class="text-center">
+                            <div class="text-4xl font-bold text-indigo-600">
+                                {{ "%.1f"|format(item.data.average) }}
+                            </div>
+                            <div class="text-gray-600">Average Rating</div>
+                            <div class="text-sm text-gray-500">
+                                From {{ item.data.total_ratings }} responses
+                            </div>
+                        </div>
+                        <div class="space-y-3">
+                            {% for rating, count in item.data.distribution.items() %}
+                            <div>
+                                <div class="flex justify-between text-sm text-gray-600 mb-1">
+                                    <span>{{ rating }} star{{ 's' if rating != 1 }}</span>
+                                    <span>{{ count }} vote{{ 's' if count != 1 }}</span>
+                                </div>
+                                <div class="h-2 bg-gray-200 rounded-full">
+                                    <div class="h-2 bg-indigo-600 rounded-full" 
+                                         style="width: {{ (count / item.data.total_ratings * 100) if item.data.total_ratings > 0 else 0 }}%">
+                                    </div>
+                                </div>
+                            </div>
+                            {% endfor %}
+                        </div>
+                    </div>
+
+                {% elif item.question.is_text %}
+                    {% if item.data %}
+                        <div class="space-y-4 max-h-[400px] overflow-y-auto">
+                            {% for answer in item.data %}
+                            <div class="bg-white p-4 rounded-lg shadow">
+                                <p class="text-gray-700">{{ answer.text }}</p>
+                                <p class="text-xs text-gray-500 mt-2">
+                                    Submitted {{ answer.timestamp.strftime('%Y-%m-%d %H:%M') }}
+                                </p>
+                            </div>
+                            {% endfor %}
+                        </div>
+                    {% else %}
+                        <p class="text-center text-gray-500">No responses yet</p>
+                    {% endif %}
+                {% endif %}
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    {% for item in questions %}
+        {% if item.question.is_mcq %}
+            new Chart(document.getElementById('chart{{ item.question.id }}').getContext('2d'), {
+                type: 'doughnut',
+                data: {
+                    labels: {{ item.data|map(attribute='text')|list|tojson }},
+                    datasets: [{
+                        data: {{ item.data|map(attribute='votes')|list|tojson }},
+                        backgroundColor: [
+                            'rgba(99, 102, 241, 0.8)',
+                            'rgba(139, 92, 246, 0.8)',
+                            'rgba(167, 139, 250, 0.8)',
+                            'rgba(192, 132, 252, 0.8)',
+                            'rgba(216, 180, 254, 0.8)',
+                            'rgba(232, 121, 249, 0.8)',
+                        ]
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    plugins: {
+                        legend: {
+                            position: 'bottom'
+                        }
+                    }
+                }
+            });
+        {% endif %}
+    {% endfor %}
+});
+
+function shareSurvey(url) {
+    navigator.clipboard.writeText(url).then(() => {
+        showToast('Survey link copied to clipboard!', 'success');
+    }).catch(() => {
+        showToast('Failed to copy link', 'error');
+    });
+}
+</script>
+{% endblock %}

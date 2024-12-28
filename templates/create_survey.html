@@ -1,0 +1,279 @@
+{% extends "base.html" %}
+
+{% block title %}Create Survey{% endblock %}
+
+{% block content %}
+<div class="max-w-4xl mx-auto">
+    <div class="bg-white shadow-2xl rounded-2xl p-8">
+        <h1 class="text-3xl font-black text-transparent bg-clip-text bg-gradient-to-r from-indigo-600 to-purple-600 mb-8">Create New Survey</h1>
+
+        <form method="post" class="space-y-8" id="surveyForm" enctype="multipart/form-data">
+            <div class="space-y-2">
+                <label for="title" class="block text-lg font-semibold text-gray-900">Survey Title</label>
+                <input type="text" name="title" id="title" required minlength="5"
+                       placeholder="Enter survey title..."
+                       class="mt-1 block w-full rounded-xl border-gray-300 shadow-sm 
+                              focus:border-indigo-500 focus:ring-indigo-500 text-lg py-3">
+            </div>
+
+            <div class="space-y-2">
+                <label for="description" class="block text-lg font-semibold text-gray-900">Description (optional)</label>
+                <textarea name="description" id="description" rows="3"
+                          class="mt-1 block w-full rounded-xl border-gray-300 shadow-sm 
+                                 focus:border-indigo-500 focus:ring-indigo-500"></textarea>
+            </div>
+
+            <div id="questions" class="space-y-6">
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <button type="button" onclick="addQuestion('mcq')" 
+                        class="border-2 border-dashed border-indigo-300 text-indigo-600 rounded-xl p-4 
+                               hover:bg-indigo-50 transition-colors flex flex-col items-center justify-center space-y-2">
+                    <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                    </svg>
+                    <span>Add Multiple Choice</span>
+                </button>
+
+                <button type="button" onclick="addQuestion('rating')"
+                        class="border-2 border-dashed border-purple-300 text-purple-600 rounded-xl p-4 
+                               hover:bg-purple-50 transition-colors flex flex-col items-center justify-center space-y-2">
+                    <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.519 4.674a1 1 0 00.95.69h4.915c.969 0 1.371 1.24.588 1.81l-3.976 2.888a1 1 0 00-.363 1.118l1.518 4.674c.3.922-.755 1.688-1.538 1.118l-3.976-2.888a1 1 0 00-1.176 0l-3.976 2.888c-.783.57-1.838-.197-1.538-1.118l1.518-4.674a1 1 0 00-.363-1.118l-3.976-2.888c-.784-.57-.38-1.81.588-1.81h4.914a1 1 0 00.951-.69l1.519-4.674z"/>
+                    </svg>
+                    <span>Add Rating Question</span>
+                </button>
+
+                <button type="button" onclick="addQuestion('text')"
+                        class="border-2 border-dashed border-emerald-300 text-emerald-600 rounded-xl p-4 
+                               hover:bg-emerald-50 transition-colors flex flex-col items-center justify-center space-y-2">
+                    <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/>
+                    </svg>
+                    <span>Add Text Question</span>
+                </button>
+            </div>
+
+            <div class="bg-gray-50 rounded-xl p-6 space-y-6">
+            </div>
+
+            <input type="hidden" name="questions" id="questionsData">
+
+            <div class="flex justify-between pt-6">
+                <a href="{{ url_for('index') }}" class="text-gray-600 hover:text-gray-800">Cancel</a>
+                <button type="submit" 
+                        class="gradient-bg text-white px-6 py-2 rounded-lg hover-scale">
+                    Create Survey
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+function addQuestion(type) {
+    const questionsContainer = document.getElementById('questions');
+    const questionDiv = document.createElement('div');
+    const questionId = Date.now();
+    questionDiv.className = 'bg-gray-50 rounded-xl p-6 space-y-4 animate__animated animate__fadeIn';
+    questionDiv.dataset.questionId = questionId;
+    questionDiv.dataset.type = type;
+    
+    let content = `
+        <div class="flex justify-between items-start mb-4">
+            <div class="flex-1 mr-4">
+                <input type="text" placeholder="Enter your question..."
+                       class="w-full rounded-lg border-gray-300 shadow-sm 
+                              focus:border-indigo-500 focus:ring-indigo-500 text-lg"
+                       onchange="updateQuestionData()">
+            </div>
+            <button type="button" onclick="removeQuestion(this)" 
+                    class="text-red-500 hover:text-red-700">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
+                          d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
+                </svg>
+            </button>
+        </div>
+    `;
+
+    switch(type) {
+        case 'mcq':
+            content += createMCQContent(questionId);
+            break;
+        case 'rating':
+            content += createRatingContent();
+            break;
+        case 'text':
+            content += createTextContent();
+            break;
+    }
+    
+    questionDiv.innerHTML = content;
+    questionsContainer.appendChild(questionDiv);
+    updateQuestionData();
+}
+
+function createMCQContent(questionId) {
+    return `
+        <div class="space-y-4">
+            <div class="flex justify-between items-center">
+                <label class="text-gray-700 font-medium">Options</label>
+                <button type="button" onclick="addMCQOption(this)" 
+                        class="text-indigo-600 hover:text-indigo-800 text-sm">
+                    Add Option
+                </button>
+            </div>
+            <div class="mcq-options space-y-2">
+                <input type="text" placeholder="Option 1" 
+                       class="w-full rounded-lg border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500">
+                <input type="text" placeholder="Option 2" 
+                       class="w-full rounded-lg border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500">
+            </div>
+            <label class="inline-flex items-center">
+                <input type="checkbox" class="text-indigo-600 border-gray-300 rounded"
+                       onchange="updateQuestionData()">
+                <span class="ml-2">Allow multiple selections</span>
+            </label>
+        </div>
+    `;
+}
+
+function createRatingContent() {
+    return `
+        <div class="space-y-4">
+            <select class="rounded-lg border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
+                    onchange="updateQuestionData()">
+                <option value="5">1-5 Scale</option>
+                <option value="10">1-10 Scale</option>
+            </select>
+        </div>
+    `;
+}
+
+function createTextContent() {
+    return `
+        <div class="space-y-4">
+            <p class="text-gray-500">Participants will provide a text answer.</p>
+        </div>
+    `;
+}
+
+function addMCQOption(button) {
+    const optionsContainer = button.closest('.mcq-options');
+    const optionCount = optionsContainer.children.length;
+    
+    if (optionCount >= 10) {
+        showToast('Maximum 10 options allowed', 'error');
+        return;
+    }
+
+    const newOption = document.createElement('div');
+    newOption.className = 'option-row animate__animated animate__fadeIn';
+    newOption.innerHTML = `
+        <input type="text" placeholder="Option ${optionCount + 1}" 
+               class="w-full rounded-lg border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500">
+        <button type="button" onclick="removeOption(this)" 
+                class="text-red-500 hover:text-red-700">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
+                      d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
+            </svg>
+        </button>
+    `;
+    
+    optionsContainer.appendChild(newOption);
+    updateOptionNumbers(optionsContainer);
+}
+
+function removeOption(button) {
+    const optionRow = button.closest('.option-row');
+    optionRow.classList.remove('animate__fadeIn');
+    optionRow.classList.add('animate__fadeOut');
+    setTimeout(() => {
+        optionRow.remove();
+        updateOptionNumbers(optionRow.closest('.mcq-options'));
+        updateQuestionData();
+    }, 500);
+}
+
+function updateOptionNumbers(container) {
+    container.querySelectorAll('.option-row input[type="text"]').forEach((input, index) => {
+        input.placeholder = `Option ${index + 1}`;
+    });
+}
+
+function removeQuestion(button) {
+    const questionDiv = button.closest('[data-question-id]');
+    questionDiv.classList.remove('animate__fadeIn');
+    questionDiv.classList.add('animate__fadeOut');
+    setTimeout(() => {
+        questionDiv.remove();
+        updateQuestionData();
+    }, 500);
+}
+
+function updateQuestionData() {
+    const questions = [];
+    document.querySelectorAll('[data-question-id]').forEach(questionDiv => {
+        const question = {
+            question: questionDiv.querySelector('input[type="text"]').value.trim(),
+            type: questionDiv.dataset.type,
+            multiple_votes: questionDiv.querySelector('input[type="checkbox"]')?.checked || false,
+            options: []
+        };
+
+        if (question.type === 'mcq') {
+            questionDiv.querySelectorAll('.mcq-options input[type="text"]').forEach(input => {
+                if (input.value.trim()) {
+                    question.options.push(input.value.trim());
+                }
+            });
+        } else if (question.type === 'rating') {
+            question.rating_scale = parseInt(questionDiv.querySelector('.question-content select').value);
+        }
+
+        questions.push(question);
+    });
+
+    document.getElementById('questionsData').value = JSON.stringify(questions);
+}
+
+document.getElementById('surveyForm').addEventListener('submit', function(e) {
+    e.preventDefault();
+    
+    const title = document.getElementById('title').value.trim();
+    if (title.length < 5) {
+        showToast('Survey title must be at least 5 characters long', 'error');
+        return;
+    }
+
+    const questions = JSON.parse(document.getElementById('questionsData').value);
+    if (questions.length === 0) {
+        showToast('Please add at least one question', 'error');
+        return;
+    }
+
+    for (let q of questions) {
+        if (q.question.length < 5) {
+            showToast('All questions must be at least 5 characters long', 'error');
+            return;
+        }
+        if (q.type === 'mcq') {
+            const validOptions = q.options.filter(opt => opt.trim().length > 0);
+            if (validOptions.length < 2) {
+                showToast('Multiple choice questions must have at least 2 options', 'error');
+                return;
+            }
+        }
+    }
+
+    this.submit();
+});
+
+document.addEventListener('DOMContentLoaded', function() {
+    addQuestion('mcq');
+});
+</script>
+{% endblock %}
