@@ -29,6 +29,10 @@ PollApp is a simple polling application built with Flask and SQLAlchemy. Create 
 - Animated UI elements
 - Rich poll management interface
 - User profile with statistics
+- Multiple question types in surveys
+  - Multiple choice questions
+  - Rating scale questions (1-5 or 1-10)
+  - Free text responses
 
 ## Installation
 
